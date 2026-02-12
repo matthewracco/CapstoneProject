@@ -1,9 +1,5 @@
 const mongoose = require('mongoose');
 
-/**
- * Locker model (tenant-specific database)
- * Fields: id, location, status, qrCode, accessCode, type, tier, createdAt
- */
 const lockerSchema = new mongoose.Schema(
   {
     location: {

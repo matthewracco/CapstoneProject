@@ -1,9 +1,5 @@
 const mongoose = require('mongoose');
 
-/**
- * Rental model (tenant-specific database)
- * Fields: id, userId, lockerId, startTime, endTime, status, rentalCode, totalCost, createdAt
- */
 const rentalSchema = new mongoose.Schema(
   {
     userId: {

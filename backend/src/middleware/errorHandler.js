@@ -1,15 +1,9 @@
-/**
- * Global error handler middleware
- * Must be registered last in Express app
- */
 function errorHandler(err, req, res, next) {
   console.error('Error:', err.message);
 
-  // Default error response
   const status = err.status || 500;
   const message = err.message || 'Internal Server Error';
 
-  // Specific error handling
   if (err.name === 'ValidationError') {
     return res.status(400).json({ error: 'Validation error', details: err.message });
   }

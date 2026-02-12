@@ -1,11 +1,7 @@
 const mongoose = require('mongoose');
 
-// Cache for tenant databases to avoid repeated connections
 const tenantDatabases = {};
 
-/**
- * Connect to the platform database (shared across all tenants)
- */
 async function connectPlatformDB() {
   try {
     const uri = process.env.PLATFORM_DB_URI || 'mongodb://localhost:27017/locker_platform';
@@ -28,10 +24,6 @@ async function connectPlatformDB() {
   }
 }
 
-/**
- * Get tenant-specific database connection
- * Creates a new connection if not cached
- */
 async function getTenantDB(tenantId) {
   if (tenantDatabases[tenantId]) {
     return tenantDatabases[tenantId];

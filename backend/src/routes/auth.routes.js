@@ -5,11 +5,6 @@ const { connectPlatformDB, getTenantDB } = require('../config/database');
 
 const router = express.Router();
 
-/**
- * POST /api/v1/auth/register
- * Register a new user for a tenant
- * Body: { tenantId, email, password, name }
- */
 router.post('/register', [
   body('tenantId').notEmpty().withMessage('tenantId is required'),
   body('email').isEmail().withMessage('Invalid email'),
@@ -24,10 +19,8 @@ router.post('/register', [
 
     const { tenantId, email, password, name } = req.body;
 
-    // Get tenant database
     const tenantDB = await getTenantDB(tenantId);
 
-    // Register user
     const user = await AuthService.register(tenantDB, email, password, name);
 
     res.status(201).json({
@@ -39,11 +32,6 @@ router.post('/register', [
   }
 });
 
-/**
- * POST /api/v1/auth/login
- * Login a user
- * Body: { tenantId, email, password }
- */
 router.post('/login', [
   body('tenantId').notEmpty().withMessage('tenantId is required'),
   body('email').isEmail().withMessage('Invalid email'),
@@ -57,10 +45,8 @@ router.post('/login', [
 
     const { tenantId, email, password } = req.body;
 
-    // Get tenant database
     const tenantDB = await getTenantDB(tenantId);
 
-    // Login user
     const result = await AuthService.login(tenantDB, tenantId, email, password);
 
     res.status(200).json({

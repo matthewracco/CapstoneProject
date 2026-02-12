@@ -3,16 +3,11 @@ const tenantResolver = require('../middleware/tenantResolver');
 
 const router = express.Router();
 
-/**
- * GET /api/v1/lockers
- * List all lockers for a tenant
- * Requires authentication
- */
+// GET /api/v1/lockers, List all lockers for a tenant, Requires authentication
 router.get('/', tenantResolver, async (req, res, next) => {
   try {
     const Locker = req.tenantDB.model('Locker', require('../models/tenant/Locker'));
 
-    // Get query filters
     const { status, location, type } = req.query;
     const filter = {};
 
@@ -32,11 +27,6 @@ router.get('/', tenantResolver, async (req, res, next) => {
   }
 });
 
-/**
- * GET /api/v1/lockers/:id
- * Get a specific locker
- * Requires authentication
- */
 router.get('/:id', tenantResolver, async (req, res, next) => {
   try {
     const Locker = req.tenantDB.model('Locker', require('../models/tenant/Locker'));

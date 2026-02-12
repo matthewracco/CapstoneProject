@@ -1,9 +1,5 @@
 const mongoose = require('mongoose');
 
-/**
- * User model (tenant-specific database)
- * Fields: id, email, password, name, status, createdAt
- */
 const userSchema = new mongoose.Schema(
   {
     email: {
