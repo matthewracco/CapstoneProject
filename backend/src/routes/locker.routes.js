@@ -1,44 +1,40 @@
 const express = require('express');
-const tenantResolver = require('../middleware/tenantResolver');
+const prisma = require("../config/prisma")
+const { requireAuth, requireTenant } = require("../middleware/clerkTenant");
 
 const router = express.Router();
 
-// GET /api/v1/lockers, List all lockers for a tenant, Requires authentication
-router.get('/', tenantResolver, async (req, res, next) => {
+router.get("/", requireAuth, requireTenant, async (req, res, next) => {
   try {
-    const Locker = req.tenantDB.model('Locker', require('../models/tenant/Locker'));
-
     const { status, location, type } = req.query;
-    const filter = {};
 
-    if (status) filter.status = status;
-    if (location) filter.location = location;
-    if (type) filter.type = type;
-
-    const lockers = await Locker.find(filter);
-
-    res.status(200).json({
-      message: 'Lockers retrieved',
-      count: lockers.length,
-      lockers,
+    const lockers = await prisma.locker.findMany({
+      where: {
+        tenantId: req.tenantId,
+        ...(status ? { status } : {}),
+        ...(location ? { location } : {}),
+        ...(type ? { type } : {}),
+      },
+      orderBy: { createdAt: "desc" },
     });
-  } catch (error) {
-    next(error);
+
+    res.status(200).json({ message: "Lockers retrieved", count: lockers.length, lockers });
+  } catch (e) {
+    next(e);
   }
 });
 
-router.get('/:id', tenantResolver, async (req, res, next) => {
+router.get("/:id", requireAuth, requireTenant, async (req, res, next) => {
   try {
-    const Locker = req.tenantDB.model('Locker', require('../models/tenant/Locker'));
+    const locker = await prisma.locker.findFirst({
+      where: { id: req.params.id, tenantId: req.tenantId },
+    });
 
-    const locker = await Locker.findById(req.params.id);
-    if (!locker) {
-      return res.status(404).json({ error: 'Locker not found' });
-    }
+    if (!locker) return res.status(404).json({ error: "Locker not found" });
 
     res.status(200).json({ locker });
-  } catch (error) {
-    next(error);
+  } catch (e) {
+    next(e);
   }
 });
 
