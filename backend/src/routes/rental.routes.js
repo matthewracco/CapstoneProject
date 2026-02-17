@@ -1,91 +1,47 @@
-const express = require('express');
-const tenantResolver = require('../middleware/tenantResolver');
+const express = require("express");
+const { requireAuth, requireTenant } = require("../middleware/clerkTenant");
+const validate = require("../middleware/validate");
+const { createRentalSchema, rentalQuerySchema } = require("../validators/rental.validator");
+const rentalService = require("../services/rental.service");
 
 const router = express.Router();
 
-router.post('/', tenantResolver, async (req, res, next) => {
+router.post("/", requireAuth, requireTenant, validate(createRentalSchema), async (req, res, next) => {
   try {
-    const { lockerId } = req.body;
-
-    if (!lockerId) {
-      return res.status(400).json({ error: 'lockerId is required' });
-    }
-
-    const Rental = req.tenantDB.model('Rental', require('../models/tenant/Rental'));
-    const Locker = req.tenantDB.model('Locker', require('../models/tenant/Locker'));
-
-    const locker = await Locker.findById(lockerId);
-    if (!locker) {
-      return res.status(404).json({ error: 'Locker not found' });
-    }
-
-    if (locker.status !== 'available') {
-      return res.status(400).json({ error: 'Locker is not available' });
-    }
-
-    const rental = await Rental.create({
+    const rental = await rentalService.createRental({
+      tenantId: req.tenantId,
       userId: req.user.userId,
-      lockerId,
-      rentalCode: `RENTAL-${Date.now()}`,
+      lockerId: req.body.lockerId,
     });
-
-    await Locker.findByIdAndUpdate(lockerId, { status: 'occupied' });
-
-    res.status(201).json({
-      message: 'Rental created successfully',
-      rental,
-    });
-  } catch (error) {
-    next(error);
+    res.status(201).json({ message: "Rental created successfully", rental });
+  } catch (e) {
+    next(e);
   }
 });
 
-router.get('/', tenantResolver, async (req, res, next) => {
+router.get("/", requireAuth, requireTenant, validate(rentalQuerySchema, "query"), async (req, res, next) => {
   try {
-    const Rental = req.tenantDB.model('Rental', require('../models/tenant/Rental'));
-
-    const rentals = await Rental.find({ userId: req.user.userId });
-
-    res.status(200).json({
-      message: 'Rentals retrieved',
-      count: rentals.length,
-      rentals,
+    const rentals = await rentalService.getUserRentals({
+      tenantId: req.tenantId,
+      userId: req.user.userId,
+      ...(req.query.status ? { status: req.query.status } : {}),
     });
-  } catch (error) {
-    next(error);
+    res.status(200).json({ message: "Rentals retrieved", count: rentals.length, rentals });
+  } catch (e) {
+    next(e);
   }
 });
 
-router.post('/:id/complete', tenantResolver, async (req, res, next) => {
+router.post("/:id/complete", requireAuth, requireTenant, async (req, res, next) => {
   try {
-    const Rental = req.tenantDB.model('Rental', require('../models/tenant/Rental'));
-    const Locker = req.tenantDB.model('Locker', require('../models/tenant/Locker'));
-
-    const rental = await Rental.findById(req.params.id);
-    if (!rental) {
-      return res.status(404).json({ error: 'Rental not found' });
-    }
-
-    if (rental.userId.toString() !== req.user.userId) {
-      return res.status(403).json({ error: 'Not authorized to complete this rental' });
-    }
-
-    if (rental.status !== 'active') {
-      return res.status(400).json({ error: 'Rental is not active' });
-    }
-
-    rental.status = 'completed';
-    rental.endTime = new Date();
-    await rental.save();
-
-    await Locker.findByIdAndUpdate(rental.lockerId, { status: 'available' });
-
-    res.status(200).json({
-      message: 'Rental completed successfully',
-      rental,
+    const rental = await rentalService.completeRental({
+      tenantId: req.tenantId,
+      userId: req.user.userId,
+      rentalId: req.params.id,
     });
-  } catch (error) {
-    next(error);
+    res.status(200).json({ message: "Rental completed successfully", rental });
+  } catch (e) {
+    next(e);
   }
 });
 
