@@ -1,6 +1,11 @@
 {
   "scripts": {
+    "start": "node server.js",
     "dev": "node server.js",
+    "db:migrate": "npx prisma migrate deploy",
+    "db:reset": "npx prisma migrate reset",
+    "db:seed": "node prisma/seed.js",
+    "db:setup": "npx prisma migrate deploy && node prisma/seed.js",
     "migrate": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",
     "generate": "prisma generate",

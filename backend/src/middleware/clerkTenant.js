@@ -1,23 +1,23 @@
-const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
+const AppError = require("../utils/AppError");
 
 
-const requireAuth = ClerkExpressRequireAuth()
 
+function requireAuth(req, res, next) {
+  if (process.env.BYPASS_AUTH === "true") {
+    req.user = { userId: process.env.DEV_USER_ID || "user_demo" };
+    return next();
+  }
 
-function requireTenant(req, res, next){
-    const { userId, orgId} = req.auth || {}
-
-    if (!userId) return res.status(401).json({error: 'unauthorized'})
-     
-    if(!orgId) {
-        return res.status(400).json({
-            error: 'No organization selected (tenant missing). Use a Clerk Organization !',
-        })
-    }    
-
-    req.user = {userId}
-    req.tenantId = orgId
-    next()
+  return next(new AppError("Unauthorized", 401, "UNAUTHORIZED"));
 }
 
-module.exports = { requireAuth, requireTenant}
+function requireTenant(req, res, next) {
+  if (process.env.BYPASS_AUTH === "true") {
+    req.tenantId = process.env.DEV_TENANT_ID || "tenant_demo";
+    return next();
+  }
+
+  return next(new AppError("Tenant required", 400, "TENANT_REQUIRED"));
+}
+
+module.exports = { requireAuth, requireTenant };
