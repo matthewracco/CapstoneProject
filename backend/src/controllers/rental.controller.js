@@ -1,9 +1,11 @@
 const rentalService = require("../services/rental.service");
+const AppError = require("../utils/AppError");
+const { ok, created } = require("../utils/respond");
 
 async function createRental(req, res, next) {
   try {
     const { lockerId } = req.body;
-    if (!lockerId) return res.status(400).json({ error: "lockerId is required" });
+    if (!lockerId) throw new AppError("lockerId is required", 400, "VALIDATION_ERROR", { field: "lockerId" });
 
     const rental = await rentalService.createRental({
       tenantId: req.tenantId,
@@ -11,7 +13,7 @@ async function createRental(req, res, next) {
       lockerId,
     });
 
-    res.status(201).json({ message: "Rental created successfully", rental });
+    return created(res, rental);
   } catch (err) {
     next(err);
   }
@@ -24,7 +26,7 @@ async function getRentals(req, res, next) {
       userId: req.user.userId,
     });
 
-    res.status(200).json({ message: "Rentals retrieved", count: rentals.length, rentals });
+    return ok(res, rentals, { count: rentals.length });
   } catch (err) {
     next(err);
   }
@@ -32,13 +34,13 @@ async function getRentals(req, res, next) {
 
 async function completeRental(req, res, next) {
   try {
-    const updated = await rentalService.completeRental({
+    const rental = await rentalService.completeRental({
       tenantId: req.tenantId,
       userId: req.user.userId,
       rentalId: req.params.id,
     });
 
-    res.status(200).json({ message: "Rental completed successfully", rental: updated });
+    return ok(res, rental);
   } catch (err) {
     next(err);
   }

@@ -1,33 +1,44 @@
-const prisma = require('../config/prisma')
+const prisma = require("../config/prisma");
+const AppError = require("../utils/AppError");
 
+async function createRental({ tenantId, userId, lockerId }) {
+  if (!lockerId) {
+    throw new AppError("lockerId is required", 400, "VALIDATION_ERROR", { field: "lockerId" });
+  }
 
+  const locker = await prisma.locker.findFirst({
+    where: { id: lockerId, tenantId },
+  });
 
-async function createRental({tenantId, userId, lockerId}) {
-    const locker = await prisma.locker.findFirst({
-        where: { id: lockerId, tenantId}
-    })
+  if (!locker) {
+    throw new AppError("Locker not found", 404, "LOCKER_NOT_FOUND");
+  }
 
-    if(!lockerId) {
-        const err = new Error('lcoker not found')
-        err.status = 400
-        throw err
+  if (locker.status !== "AVAILABLE") {
+    throw new AppError("Locker is not available", 400, "LOCKER_NOT_AVAILABLE");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.locker.updateMany({
+      where: { id: lockerId, tenantId, status: "AVAILABLE" },
+      data: { status: "OCCUPIED" },
+    });
+
+    if (updated.count === 0) {
+      throw new AppError("Locker is not available", 400, "LOCKER_NOT_AVAILABLE");
     }
 
-    return prisma.$transaction(async (tx) => {
-        await tx.locker.update({
-            where: {id: lockerId},
-            data: { status: 'occupied'}
-        })
-
-        return tx.rental.create({
-            data: {
-                tenantId,
-                userId,
-                lockerId,
-                rentalCode: `RENTAL-${Date.now()}`
-            }
-        })
-    })
+    return tx.rental.create({
+      data: {
+        tenantId,
+        userId,
+        lockerId,
+        status: "ACTIVE",
+        paymentStatus: "PENDING",
+        rentalCode: `RENTAL-${Date.now()}`,
+      },
+    });
+  });
 }
 
 async function getUserRentals({ tenantId, userId }) {
@@ -44,35 +55,32 @@ async function completeRental({ tenantId, userId, rentalId }) {
   });
 
   if (!rental) {
-    const err = new Error("Rental not found");
-    err.status = 404;
-    throw err;
+    throw new AppError("Rental not found", 404, "RENTAL_NOT_FOUND");
   }
 
   if (rental.userId !== userId) {
-    const err = new Error("Not authorized");
-    err.status = 403;
-    throw err;
+    throw new AppError("Not authorized", 403, "FORBIDDEN");
   }
 
-  if (rental.status !== "active") {
-    const err = new Error("Rental is not active");
-    err.status = 400;
-    throw err;
+  if (rental.status !== "ACTIVE") {
+    throw new AppError("Rental is not active", 400, "RENTAL_NOT_ACTIVE");
   }
 
   return prisma.$transaction(async (tx) => {
-    const updated = await tx.rental.update({
+    await tx.rental.update({
       where: { id: rental.id },
-      data: { status: "completed", endTime: new Date() },
+      data: { status: "COMPLETED", endTime: new Date() },
     });
 
-    await tx.locker.update({
-      where: { id: rental.lockerId },
-      data: { status: "available" },
+    await tx.locker.updateMany({
+      where: { id: rental.lockerId, tenantId },
+      data: { status: "AVAILABLE" },
     });
 
-    return updated;
+    return tx.rental.findFirst({
+      where: { id: rental.id, tenantId },
+      include: { locker: true },
+    });
   });
 }
 

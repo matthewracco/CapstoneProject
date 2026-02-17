@@ -40,17 +40,21 @@
 
 // module.exports = router;
 
-const router = require("express").Router();
+const express = require("express");
 const { requireAuth, requireTenant } = require("../middleware/clerkTenant");
-const controller = require("../controllers/locker.controller");
+const validate = require("../middleware/validate");
+const lockerController = require("../controllers/locker.controller");
+const {
+  createLockerSchema,
+  updateLockerSchema,
+  lockerQuerySchema,
+} = require("../validators/locker.validator");
 
-// GET /api/v1/lockers
-router.get("/", requireAuth, requireTenant, controller.getLockers);
+const router = express.Router();
 
-// GET /api/v1/lockers/:id
-router.get("/:id", requireAuth, requireTenant, controller.getLocker);
-
-// POST /api/v1/lockers
-router.post("/", requireAuth, requireTenant, controller.createLocker);
+router.get("/", requireAuth, requireTenant, validate(lockerQuerySchema, "query"), lockerController.getLockers);
+router.get("/:id", requireAuth, requireTenant, lockerController.getLocker);
+router.post("/", requireAuth, requireTenant, validate(createLockerSchema), lockerController.createLocker);
+router.patch("/:id", requireAuth, requireTenant, validate(updateLockerSchema), lockerController.updateLocker);
 
 module.exports = router;
