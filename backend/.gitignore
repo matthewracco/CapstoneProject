@@ -1,8 +1,5 @@
-node_modules/
+node_modules
+# Keep environment variables out of version control
 .env
-.env.local
-dist/
-*.log
-.DS_Store
-keys/private.pem
-keys/public.pem
+
+/generated/prisma

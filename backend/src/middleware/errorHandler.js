@@ -1,18 +1,28 @@
+
 function errorHandler(err, req, res, next) {
-  console.error('Error:', err.message);
+  const status = err.status || 500
 
-  const status = err.status || 500;
-  const message = err.message || 'Internal Server Error';
-
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({ error: 'Validation error', details: err.message });
+  const isZod = err?.name === 'ZodError'
+  if(isZod) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Validation failed",
+        details: err.issues,
+      }
+    })
   }
 
-  if (err.name === 'MongoError' && err.code === 11000) {
-    return res.status(409).json({ error: 'Duplicate entry', field: Object.keys(err.keyValue)[0] });
-  }
+  return res.status(status).json({
+    success: false,
+    error: {
+      code: err.code || (status === 500 ? "INTERNAL_ERROR" : "BAD_REQUEST"),
+      message: err.message || "Internal Server Error",
+      details: err.details || undefined,
+    }
+  })
 
-  res.status(status).json({ error: message });
 }
 
 module.exports = errorHandler;

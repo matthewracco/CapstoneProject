@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+}
+
+
+enum LockerStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum LockerType {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum LockerTier {
+  STANDARD
+  PREMIUM  
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum RentalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+
+model Locker {
+  id          String    @id @default(cuid())
+  tenantId    String
+  location    String
+  lockerNumber    String
+
+  status          LockerStatus  @default(AVAILABLE)
+  qrCode          String?
+  accessCode      String?
+  type            LockerType      @default(MEDIUM)
+  tier            LockerTier      @default(STANDARD)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  rentals Rental[]
+
+
+  @@unique([tenantId, lockerNumber])
+  @@unique([tenantId, qrCode])
+  @@index([tenantId, status])
+  @@index([tenantId, location])
+}
+
+model Rental {
+  id            String        @id @default(cuid())
+  tenantId      String
+  userId        String
+  lockerId      String
+  startTime     DateTime      @default(now())
+  endTime       DateTime?
+
+  status        RentalStatus  @default(ACTIVE)
+  rentalCode    String        @unique
+  totalCost     Float         @default(0)
+  paymentStatus PaymentStatus @default(PENDING)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  locker        Locker        @relation(fields: [lockerId], references: [id])
+
+  @@index([tenantId, userId])
+  @@index([tenantId, status])
+}
