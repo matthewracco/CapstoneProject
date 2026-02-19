@@ -32,9 +32,6 @@ export default function Register() {
     try {
       const res = await api.post("/auth/register", form);
 
-      // Expected backend response:
-      // { id, name, role, token }
-
       login(res.data);
 
       navigate("/");
@@ -94,7 +91,6 @@ export default function Register() {
           required
         />
 
-        {/* Role Selection */}
         <select
           name="role"
           value={form.role}
