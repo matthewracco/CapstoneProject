@@ -86,7 +86,18 @@ model Rental {
   updatedAt     DateTime      @updatedAt
 
   locker        Locker        @relation(fields: [lockerId], references: [id])
-
+  user          User          @relation(fields: [userId], references: [id])
   @@index([tenantId, userId])
   @@index([tenantId, status])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clerkUserId  String   @unique
+  role         String   @default("USER")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rentals      Rental[]
+
 }
