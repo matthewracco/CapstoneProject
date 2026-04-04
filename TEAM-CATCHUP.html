@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Locker Rental System - Team Catch-Up Guide</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --orange: #db6d28;
+    --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 2.2rem; margin-bottom: 0.5rem; color: var(--accent); }
+  h2 { font-size: 1.6rem; margin-top: 3rem; margin-bottom: 1rem; color: var(--green); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  h3 { font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--purple); }
+  p, li { color: var(--text); margin-bottom: 0.5rem; }
+  .subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 2rem; }
+  .deadline { background: var(--red); color: white; padding: 0.3rem 0.8rem; border-radius: 4px; font-weight: bold; display: inline-block; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+  .diagram-box {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.6rem 1rem; text-align: left; border: 1px solid var(--border); }
+  th { background: var(--surface); color: var(--accent); }
+  td { color: var(--text); }
+  .done { color: var(--green); font-weight: bold; }
+  .todo { color: var(--red); font-weight: bold; }
+  .partial { color: var(--yellow); font-weight: bold; }
+  code {
+    background: var(--surface);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    color: var(--orange);
+  }
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-right: 0.3rem;
+  }
+  .tag-done { background: #238636; color: white; }
+  .tag-todo { background: #da3633; color: white; }
+  .tag-partial { background: #9e6a03; color: white; }
+  .role-customer { border-left: 4px solid #58a6ff; }
+  .role-staff { border-left: 4px solid #d29922; }
+  .role-owner { border-left: 4px solid #bc8cff; }
+  .role-admin { border-left: 4px solid #f85149; }
+  ul { padding-left: 1.5rem; margin: 0.5rem 0; }
+  .toc { columns: 2; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .alert {
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 500;
+  }
+  .alert-red { background: rgba(248,81,73,0.15); border: 1px solid var(--red); }
+  .alert-green { background: rgba(63,185,80,0.15); border: 1px solid var(--green); }
+  .alert-yellow { background: rgba(210,153,34,0.15); border: 1px solid var(--yellow); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 768px) { .cols { grid-template-columns: 1fr; } .toc { columns: 1; } }
+</style>
+</head>
+<body>
+
+<h1>SmartLocker - Team Catch-Up Guide</h1>
+<p class="subtitle">Everything you need to know to get back up to speed. Read top to bottom.</p>
+<p><span class="deadline">DEADLINE: Sunday, April 5, 2026</span> &mdash; 4 days from now</p>
+
+<!-- ============================================================ -->
+<h2 id="tldr">TL;DR - What Is This Project?</h2>
+<div class="card">
+  <p><strong>We're building a Locker Rental System</strong> &mdash; think of it like renting a locker at an airport, gym, or school, but digitally.</p>
+  <ul>
+    <li><strong>Customers</strong> scan a QR code on a physical locker, rent it through their phone/browser, get an access code to unlock it.</li>
+    <li><strong>Staff</strong> manage lockers, handle overdue rentals, override locks.</li>
+    <li><strong>Business Owners</strong> configure pricing, manage staff, view analytics.</li>
+    <li><strong>Platform Admins</strong> onboard new businesses (tenants).</li>
+  </ul>
+  <p>It's <strong>multi-tenant</strong> &mdash; one platform serves many businesses, each with their own lockers and users.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="tech">Tech Stack</h2>
+<div class="cols">
+  <div class="card">
+    <h3>Backend</h3>
+    <ul>
+      <li><strong>Node.js + Express</strong> &mdash; REST API</li>
+      <li><strong>Prisma ORM</strong> &mdash; Database queries</li>
+      <li><strong>SQLite</strong> &mdash; Database (dev.db file)</li>
+      <li><strong>Zod</strong> &mdash; Input validation</li>
+      <li>Port: <code>localhost:5050</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Frontend</h3>
+    <ul>
+      <li><strong>React 19 + Vite</strong> &mdash; SPA</li>
+      <li><strong>Tailwind CSS</strong> &mdash; Styling</li>
+      <li><strong>Recharts</strong> &mdash; Charts/graphs</li>
+      <li><strong>Axios</strong> &mdash; API calls</li>
+      <li>Port: <code>localhost:5173</code></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="architecture">System Architecture</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+graph TB
+    subgraph "Frontend (React + Vite)"
+        A[Customer Views] --> |Axios| PROXY[Vite Proxy /api/*]
+        B[Staff Views] --> |Axios| PROXY
+        C[Owner Views] --> |Axios| PROXY
+    end
+
+    PROXY --> |http://localhost:5050| GW[Express Server :5050]
+
+    subgraph "Backend (Node.js + Express)"
+        GW --> MW[Middleware Stack]
+        MW --> |1| AUTH[Auth Middleware]
+        MW --> |2| TENANT[Tenant Resolver]
+        MW --> |3| VALIDATE[Zod Validator]
+
+        AUTH --> ROUTES[Routes]
+        ROUTES --> CTRL[Controllers]
+        CTRL --> SVC[Services]
+        SVC --> PRISMA[Prisma ORM]
+    end
+
+    PRISMA --> DB[(SQLite - dev.db)]
+
+    style A fill:#58a6ff,color:#000
+    style B fill:#d29922,color:#000
+    style C fill:#bc8cff,color:#000
+    style DB fill:#3fb950,color:#000
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="folder">Folder Structure</h2>
+<div class="card">
+<pre style="color: var(--text); font-size: 0.85rem; line-height: 1.5;">
+CapstoneProject/
+├── backend/
+│   ├── server.js                  # Entry point - starts Express on :5050
+│   ├── .env                       # BYPASS_AUTH=true, PORT=5050
+│   ├── src/
+│   │   ├── app.js                 # Express app setup, all routes mounted here
+│   │   ├── config/prisma.js       # Prisma client singleton
+│   │   ├── middleware/
+│   │   │   ├── clerkTenant.js     # Auth + tenant extraction (STUBBED)
+│   │   │   ├── errorHandler.js    # Global error catcher
+│   │   │   └── validate.js        # Zod validation middleware
+│   │   ├── routes/
+│   │   │   ├── locker.routes.js   # GET/POST/PATCH /api/v1/lockers
+│   │   │   ├── rental.routes.js   # GET/POST /api/v1/rentals
+│   │   │   └── stats.routes.js    # GET /api/v1/stats
+│   │   ├── controllers/           # Request handlers (call services)
+│   │   ├── services/              # Business logic (call Prisma)
+│   │   ├── validators/            # Zod schemas for each endpoint
+│   │   └── utils/                 # AppError, response helpers
+│   └── prisma/
+│       ├── schema.prisma          # DATABASE SCHEMA - Locker + Rental models
+│       ├── seed.js                # Creates 24 demo lockers + 18 rentals
+│       └── dev.db                 # The actual SQLite database file
+│
+├── frontend/
+│   ├── vite.config.js             # Proxy: /api/* -> localhost:5050
+│   └── src/
+│       ├── main.jsx               # App entry + AuthProvider wrapper
+│       ├── lib/axios.js           # Axios instance (base URL /api)
+│       ├── app/
+│       │   ├── App.jsx            # React Router - all page routes
+│       │   └── layout/            # Sidebar + Topbar
+│       └── features/
+│           ├── auth/              # Login/Register (STUBS) + AuthContext
+│           ├── dashboard/         # Overview page with stat cards
+│           ├── lockers/           # Locker grid + create/rent modals
+│           ├── rentals/           # User rental history
+│           └── analytics/         # Charts page
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="db">Database Schema</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+erDiagram
+    LOCKER {
+        string id PK "CUID"
+        string tenantId "Tenant isolation"
+        string lockerNumber "e.g. A-001"
+        string location "Floor 1 East Wing"
+        string status "AVAILABLE | OCCUPIED | MAINTENANCE"
+        string type "SMALL | MEDIUM | LARGE"
+        string tier "STANDARD | PREMIUM"
+        string qrCode "QR reference"
+        string accessCode "Current access PIN"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    RENTAL {
+        string id PK "CUID"
+        string tenantId "Tenant isolation"
+        string userId "Who rented"
+        string lockerId FK "Which locker"
+        string status "ACTIVE | COMPLETED | CANCELLED"
+        string rentalCode "RENTAL-1708381735"
+        float totalCost "5.00 / 8.00 / 12.00"
+        string paymentStatus "PENDING | COMPLETED | FAILED"
+        datetime startTime
+        datetime endTime
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    LOCKER ||--o{ RENTAL : "has many"
+</pre>
+</div>
+
+<div class="alert alert-yellow">
+  <strong>Note:</strong> The original spec designed for MongoDB with separate User, Payment, Notification, Assignment collections. We simplified to SQLite with just Locker + Rental for now. Users are identified by <code>userId</code> string (from auth), not a separate table.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="api">API Endpoints</h2>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>What It Does</th><th>Status</th></tr>
+  <tr><td>GET</td><td><code>/health</code></td><td>Health check</td><td class="done">DONE</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/lockers</code></td><td>List lockers (filter by status, type, location)</td><td class="done">DONE</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/lockers/:id</code></td><td>Get single locker</td><td class="done">DONE</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/lockers</code></td><td>Create a locker</td><td class="done">DONE</td></tr>
+  <tr><td>PATCH</td><td><code>/api/v1/lockers/:id</code></td><td>Update locker</td><td class="done">DONE</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/rentals</code></td><td>List user's rentals</td><td class="done">DONE</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/rentals</code></td><td>Rent a locker</td><td class="done">DONE</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/rentals/:id/complete</code></td><td>End a rental</td><td class="done">DONE</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/stats</code></td><td>Dashboard analytics</td><td class="done">DONE</td></tr>
+  <tr><td colspan="4" style="background: var(--surface); color: var(--red); font-weight: bold; text-align: center;">--- NEEDS TO BE BUILT ---</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/auth/register</code></td><td>User registration</td><td class="todo">TODO</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/auth/login</code></td><td>User login (returns JWT)</td><td class="todo">TODO</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/auth/refresh</code></td><td>Refresh token</td><td class="todo">TODO</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/rentals/:id/extend</code></td><td>Extend rental duration</td><td class="todo">TODO</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/rentals/:id/access-code</code></td><td>Generate 6-digit access code</td><td class="todo">TODO</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/lockers/:id/qr</code></td><td>Generate QR code for locker</td><td class="todo">TODO</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/notifications</code></td><td>Get user notifications</td><td class="todo">TODO</td></tr>
+  <tr><td>PATCH</td><td><code>/api/v1/notifications/:id/read</code></td><td>Mark notification read</td><td class="todo">TODO</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/payments/process</code></td><td>Mock payment processing</td><td class="todo">TODO</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/users</code></td><td>List users (staff/owner)</td><td class="todo">TODO</td></tr>
+  <tr><td>PATCH</td><td><code>/api/v1/users/:id/role</code></td><td>Change user role</td><td class="todo">TODO</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/staff/override/:lockerId</code></td><td>Staff override locker</td><td class="todo">TODO</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="roles">The 4 User Roles</h2>
+
+<div class="cols">
+  <div class="card role-customer">
+    <h3>Customer</h3>
+    <p>Regular user who rents lockers</p>
+    <ul>
+      <li>Register & login</li>
+      <li>Browse available lockers</li>
+      <li>Scan QR code on physical locker</li>
+      <li>Rent a locker</li>
+      <li>Get access code to unlock</li>
+      <li>Extend rental</li>
+      <li>End rental</li>
+      <li>View rental history</li>
+      <li>Receive notifications</li>
+    </ul>
+  </div>
+  <div class="card role-staff">
+    <h3>Staff</h3>
+    <p>Employee managing day-to-day operations</p>
+    <ul>
+      <li>Everything a customer can do, plus:</li>
+      <li>View ALL lockers and their status</li>
+      <li>Override locker status (unlock, maintenance)</li>
+      <li>View overdue rentals</li>
+      <li>Assign lockers to specific users</li>
+      <li>Approve/deny user access requests</li>
+    </ul>
+  </div>
+  <div class="card role-owner">
+    <h3>Business Owner</h3>
+    <p>Owns/runs the facility</p>
+    <ul>
+      <li>Everything staff can do, plus:</li>
+      <li>Configure facility settings</li>
+      <li>Set pricing per locker size</li>
+      <li>Add/remove/decommission lockers</li>
+      <li>Manage staff accounts</li>
+      <li>View analytics & reports</li>
+      <li>Configure rental policies</li>
+    </ul>
+  </div>
+  <div class="card role-admin">
+    <h3>Platform Admin</h3>
+    <p>Manages the whole platform</p>
+    <ul>
+      <li>Onboard new tenants (businesses)</li>
+      <li>Monitor system health</li>
+      <li>View platform-wide metrics</li>
+      <li><em>(Low priority for demo)</em></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="flow-customer">Flow: Customer Journey</h2>
+<p>This is the MAIN flow of the app &mdash; what a customer does from start to finish.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    START([Customer Opens App]) --> REG{Has Account?}
+    REG -->|No| REGISTER[Register with email/password]
+    REG -->|Yes| LOGIN[Login]
+    REGISTER --> LOGIN
+    LOGIN --> HOME[Dashboard - See Available Lockers]
+
+    HOME --> BROWSE[Browse Lockers by Location/Size]
+    HOME --> SCAN[Scan QR Code on Physical Locker]
+
+    BROWSE --> SELECT[Select a Locker]
+    SCAN --> SELECT
+
+    SELECT --> DETAILS[View Locker Details\nSize, Price, Location]
+    DETAILS --> RENT[Click 'Rent This Locker']
+
+    RENT --> PAY{Payment Required?}
+    PAY -->|Yes| MOCK_PAY[Mock Payment\nSmall=$5, Med=$8, Large=$12]
+    PAY -->|Free/Subscription| SKIP_PAY[Skip Payment]
+    MOCK_PAY --> CONFIRM[Rental Confirmed!]
+    SKIP_PAY --> CONFIRM
+
+    CONFIRM --> ACCESS[Generate Access Code\n6-digit PIN, 5min expiry]
+    ACCESS --> UNLOCK[Enter Code on Physical Locker\nLocker Unlocks]
+
+    UNLOCK --> USING[Using Locker...]
+
+    USING --> EXTEND{Need More Time?}
+    EXTEND -->|Yes| EXT_RENTAL[Extend Rental Duration]
+    EXT_RENTAL --> USING
+
+    EXTEND -->|No| DONE{Done with Locker?}
+    DONE -->|Yes| END_RENTAL[End Rental]
+    END_RENTAL --> COMPLETE[Locker Returns to Available]
+
+    DONE -->|Forgot| EXPIRE[Rental Expires After Max Duration]
+    EXPIRE --> OVERDUE[Overdue! Notification Sent]
+    OVERDUE --> GRACE[Grace Period]
+    GRACE --> FORCE_END[System Force-Ends Rental]
+
+    style START fill:#58a6ff,color:#000
+    style CONFIRM fill:#3fb950,color:#000
+    style ACCESS fill:#3fb950,color:#000
+    style OVERDUE fill:#f85149,color:#fff
+    style MOCK_PAY fill:#d29922,color:#000
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="flow-rental">Flow: Rental Lifecycle (Backend)</h2>
+<p>What happens in the database when a rental is created and completed.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    actor Customer
+    participant Frontend
+    participant API as Express API
+    participant Service as Rental Service
+    participant DB as SQLite (Prisma)
+
+    Customer->>Frontend: Click "Rent Locker A-001"
+    Frontend->>API: POST /api/v1/rentals {lockerId}
+    API->>API: Auth middleware (verify JWT)
+    API->>API: Tenant middleware (extract tenantId)
+    API->>API: Zod validation
+
+    API->>Service: createRental(tenantId, userId, lockerId)
+    Service->>DB: BEGIN TRANSACTION
+    Service->>DB: Find locker WHERE id = lockerId AND status = AVAILABLE
+    alt Locker is available
+        Service->>DB: UPDATE Locker SET status = OCCUPIED
+        Service->>DB: CREATE Rental (status=ACTIVE, cost=price)
+        Service->>DB: COMMIT
+        Service-->>API: Return rental object
+        API-->>Frontend: 201 Created {rental}
+        Frontend-->>Customer: Show confirmation + rental code
+    else Locker not available
+        Service->>DB: ROLLBACK
+        Service-->>API: Throw error
+        API-->>Frontend: 409 Conflict "Locker not available"
+        Frontend-->>Customer: Show error message
+    end
+
+    Note over Customer,DB: Later... customer ends rental
+
+    Customer->>Frontend: Click "End Rental"
+    Frontend->>API: POST /api/v1/rentals/:id/complete
+    API->>Service: completeRental(rentalId)
+    Service->>DB: BEGIN TRANSACTION
+    Service->>DB: UPDATE Rental SET status=COMPLETED, endTime=now
+    Service->>DB: UPDATE Locker SET status=AVAILABLE
+    Service->>DB: COMMIT
+    API-->>Frontend: 200 OK
+    Frontend-->>Customer: Rental ended!
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="flow-staff">Flow: Staff Operations</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    STAFF([Staff Logs In]) --> DASH[Staff Dashboard]
+
+    DASH --> VIEW_ALL[View All Lockers\nSee real-time status]
+    DASH --> OVERDUE[View Overdue Rentals]
+    DASH --> USERS[Manage User Requests]
+
+    VIEW_ALL --> FILTER[Filter by Status\nAvailable / Occupied / Maintenance]
+    VIEW_ALL --> OVERRIDE{Need Override?}
+
+    OVERRIDE -->|Unlock| FORCE_UNLOCK[Force Unlock Locker\nEnd rental manually]
+    OVERRIDE -->|Maintenance| MARK_MAINT[Mark Out of Service\nPrevents new rentals]
+    OVERRIDE -->|Back Online| MARK_AVAIL[Mark Available Again]
+
+    OVERDUE --> CONTACT[Contact User\nSend notification]
+    OVERDUE --> FORCE_END[Force End Overdue Rental]
+
+    USERS --> APPROVE[Approve User Access\nRestricted facilities]
+    USERS --> DENY[Deny User Access]
+    USERS --> ASSIGN[Assign Specific Locker\nTo specific user]
+
+    style STAFF fill:#d29922,color:#000
+    style FORCE_UNLOCK fill:#f85149,color:#fff
+    style MARK_MAINT fill:#f85149,color:#fff
+    style APPROVE fill:#3fb950,color:#000
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="flow-owner">Flow: Business Owner Operations</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    OWNER([Owner Logs In]) --> DASH[Owner Dashboard\nFull Analytics View]
+
+    DASH --> ANALYTICS[View Analytics\nUtilization, Revenue, Peak Hours]
+    DASH --> MANAGE_LOCKERS[Manage Locker Inventory]
+    DASH --> MANAGE_STAFF[Manage Staff Accounts]
+    DASH --> CONFIG[Configure Facility]
+
+    ANALYTICS --> REPORTS[Generate Reports\nUsage, Revenue, Overdue]
+
+    MANAGE_LOCKERS --> ADD[Add New Lockers\nSet size, location, tier]
+    MANAGE_LOCKERS --> UPDATE[Update Existing\nChange status, details]
+    MANAGE_LOCKERS --> DECOM[Decommission Locker\nRemove from service]
+
+    MANAGE_STAFF --> ADD_STAFF[Add Staff Members]
+    MANAGE_STAFF --> REMOVE_STAFF[Remove Staff]
+    MANAGE_STAFF --> CHANGE_ROLE[Change Roles]
+
+    CONFIG --> PRICING[Set Pricing\nPer locker size]
+    CONFIG --> ACCESS_MODEL[Configure Access Model\nPublic / Restricted / Assigned]
+    CONFIG --> POLICIES[Set Rental Policies\nMax duration, grace period]
+
+    style OWNER fill:#bc8cff,color:#000
+    style ANALYTICS fill:#58a6ff,color:#000
+    style CONFIG fill:#d29922,color:#000
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="locker-states">Locker State Machine</h2>
+<p>A locker can be in one of these states. Arrows show what transitions are allowed.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> AVAILABLE : Locker created
+
+    AVAILABLE --> OCCUPIED : Customer rents it
+    OCCUPIED --> AVAILABLE : Rental completed/ended
+    OCCUPIED --> MAINTENANCE : Staff marks for repair
+
+    AVAILABLE --> MAINTENANCE : Staff marks for repair
+    MAINTENANCE --> AVAILABLE : Staff marks fixed
+
+    AVAILABLE --> ASSIGNED : Owner assigns to user
+    ASSIGNED --> AVAILABLE : Assignment ends
+
+    note right of OCCUPIED : Locker is actively rented\nCannot be rented by another user
+    note right of MAINTENANCE : Out of service\nNot visible to customers
+    note right of ASSIGNED : Reserved for specific user\nOnly they can rent it
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="rental-states">Rental State Machine</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> ACTIVE : Rental created
+
+    ACTIVE --> COMPLETED : User ends rental
+    ACTIVE --> COMPLETED : Staff force-ends
+    ACTIVE --> CANCELLED : User cancels
+    ACTIVE --> OVERDUE : Past max duration + grace
+
+    OVERDUE --> COMPLETED : User finally ends it
+    OVERDUE --> COMPLETED : Staff force-ends
+
+    COMPLETED --> [*]
+    CANCELLED --> [*]
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="qr-flow">Flow: QR Code + Access Code System</h2>
+<p>This is the <strong>core differentiator</strong> of our project.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    actor User
+    participant Phone as User's Phone
+    participant API as Backend API
+    participant DB as Database
+
+    Note over User,DB: STEP 1: QR Code on physical locker
+
+    User->>Phone: Scan QR code on locker door
+    Phone->>Phone: QR contains: locker ID + tenant ID
+    Phone->>API: GET /api/v1/lockers/:id
+    API->>DB: Find locker
+    DB-->>API: Locker details (available, size, price)
+    API-->>Phone: Show locker info
+
+    Note over User,DB: STEP 2: Rent the locker
+
+    User->>Phone: Tap "Rent This Locker"
+    Phone->>API: POST /api/v1/rentals {lockerId}
+    API->>DB: Create rental + mark locker OCCUPIED
+    DB-->>API: Rental created
+    API-->>Phone: Rental confirmed!
+
+    Note over User,DB: STEP 3: Get access code to unlock
+
+    User->>Phone: Tap "Get Access Code"
+    Phone->>API: POST /api/v1/rentals/:id/access-code
+    API->>API: Generate random 6-digit code
+    API->>API: Hash code with bcrypt
+    API->>DB: Store hashed code + expiry (5 min from now)
+    API-->>Phone: Display code: 847291
+
+    Note over User,DB: STEP 4: Unlock the locker
+
+    User->>User: Enter 847291 on locker keypad
+    Note right of User: (In real life, hardware validates.\nFor our project, we just show the code.)
+
+    Note over User,DB: Code expires after 5 minutes.\nUser can generate a new one (max 3 per 15 min).
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="auth-flow">Flow: Authentication</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    START([User Opens App]) --> CHECK{Has JWT Token?}
+
+    CHECK -->|Yes| VERIFY[Verify Token with Backend]
+    CHECK -->|No| LOGIN_PAGE[Show Login Page]
+
+    VERIFY -->|Valid| HOME[Go to Dashboard]
+    VERIFY -->|Expired| REFRESH[Try Refresh Token]
+    REFRESH -->|Success| HOME
+    REFRESH -->|Failed| LOGIN_PAGE
+
+    LOGIN_PAGE --> CHOICE{Login or Register?}
+
+    CHOICE -->|Register| REG_FORM[Registration Form\nName, Email, Password]
+    REG_FORM --> HASH[Backend hashes password with bcrypt]
+    HASH --> CREATE_USER[Create user in DB]
+    CREATE_USER --> ISSUE_TOKEN[Issue JWT + Refresh Token]
+
+    CHOICE -->|Login| LOGIN_FORM[Login Form\nEmail, Password]
+    LOGIN_FORM --> VALIDATE[Backend validates credentials]
+    VALIDATE -->|Success| ISSUE_TOKEN
+    VALIDATE -->|Wrong password| FAIL_COUNT{Failed attempts >= 5?}
+    FAIL_COUNT -->|Yes| LOCKED[Account locked 15 min]
+    FAIL_COUNT -->|No| LOGIN_FORM
+
+    ISSUE_TOKEN --> STORE[Store tokens in localStorage]
+    STORE --> HOME
+
+    style HOME fill:#3fb950,color:#000
+    style LOCKED fill:#f85149,color:#fff
+    style ISSUE_TOKEN fill:#58a6ff,color:#000
+</pre>
+</div>
+
+<div class="alert alert-red">
+  <strong>CURRENT STATE:</strong> Auth is completely bypassed. <code>BYPASS_AUTH=true</code> in .env means every request is treated as <code>user_demo_1</code> with role <code>OWNER</code>. We need to build real JWT auth.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="payment-flow">Flow: Mock Payment</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    RENT[User Confirms Rental] --> PRICE[Calculate Price\nSmall=$5, Med=$8, Large=$12]
+    PRICE --> SELECT[Select Payment Method]
+
+    SELECT --> CARD[mock_card\nSimulated credit card]
+    SELECT --> WALLET[mock_wallet\nSimulated digital wallet]
+    SELECT --> FAIL_CARD[mock_card_fail\nAlways declines - for testing]
+    SELECT --> SUB[subscription\nPre-paid, no charge]
+
+    CARD --> PROCESS[Mock Gateway\n2-second delay]
+    WALLET --> PROCESS
+    FAIL_CARD --> PROCESS
+
+    PROCESS --> RESULT{Random Result}
+    RESULT -->|90% chance| SUCCESS[Payment Success\nRental Activated]
+    RESULT -->|10% chance| FAILED[Payment Failed\nShow retry option]
+
+    FAIL_CARD --> ALWAYS_FAIL[Always Fails\nFor testing error handling]
+
+    SUB --> SUCCESS
+
+    style SUCCESS fill:#3fb950,color:#000
+    style FAILED fill:#f85149,color:#fff
+    style ALWAYS_FAIL fill:#f85149,color:#fff
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="notifications-flow">Flow: Notification System</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    subgraph "Cron Jobs (Background)"
+        CRON1[Every 5 min\nCheck approaching expiry] --> WARN1H{Rental expires\nin < 1 hour?}
+        WARN1H -->|Yes| NOTIF1[Send EXPIRY_WARNING_1H]
+        WARN1H -->|No| WARN15{Expires in\n< 15 min?}
+        WARN15 -->|Yes| NOTIF2[Send EXPIRY_WARNING_15M]
+
+        CRON2[Every 1 min\nCheck expired] --> EXPIRED{Rental past\nend time?}
+        EXPIRED -->|Yes| NOTIF3[Send RENTAL_EXPIRED]
+
+        CRON3[Every 15 min\nCheck overdue] --> GRACE{Past grace\nperiod?}
+        GRACE -->|Yes| NOTIF4[Send RENTAL_OVERDUE\n+ Force end rental]
+    end
+
+    subgraph "Event-Triggered"
+        RENT_EVENT[Rental Created] --> NOTIF5[Send RENTAL_CONFIRMATION]
+        APPROVE_EVENT[User Approved] --> NOTIF6[Send APPROVAL_GRANTED]
+        ASSIGN_EVENT[Locker Assigned] --> NOTIF7[Send LOCKER_ASSIGNED]
+    end
+
+    NOTIF1 --> STORE[Store in notifications table]
+    NOTIF2 --> STORE
+    NOTIF3 --> STORE
+    NOTIF4 --> STORE
+    NOTIF5 --> STORE
+    NOTIF6 --> STORE
+    NOTIF7 --> STORE
+
+    STORE --> BELL[Show in notification bell\non frontend]
+
+    style NOTIF4 fill:#f85149,color:#fff
+    style STORE fill:#58a6ff,color:#000
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="multi-tenant">How Multi-Tenancy Works</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart LR
+    subgraph "Airport Corp (tenant_1)"
+        A1[50 Lockers]
+        A2[200 Customers]
+        A3[5 Staff]
+    end
+
+    subgraph "University (tenant_2)"
+        B1[300 Lockers]
+        B2[5000 Students]
+        B3[10 Staff]
+    end
+
+    subgraph "Gym Chain (tenant_3)"
+        C1[100 Lockers]
+        C2[1000 Members]
+        C3[3 Staff]
+    end
+
+    PLATFORM[Our Platform\nSingle Backend] --> A1
+    PLATFORM --> B1
+    PLATFORM --> C1
+
+    style PLATFORM fill:#58a6ff,color:#000
+</pre>
+</div>
+
+<div class="card">
+  <h3>How it works in code:</h3>
+  <ul>
+    <li>Every database row has a <code>tenantId</code> column</li>
+    <li>When a user logs in, their JWT contains their <code>tenantId</code></li>
+    <li>The <code>clerkTenant.js</code> middleware extracts it and adds it to <code>req.tenantId</code></li>
+    <li>Every database query filters by <code>WHERE tenantId = req.tenantId</code></li>
+    <li>Tenant A can NEVER see Tenant B's data</li>
+  </ul>
+  <p><strong>Currently:</strong> Hardcoded to <code>tenant_demo_1</code> because auth is bypassed.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="status">What's DONE vs What's LEFT</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+pie title Project Completion
+    "Done" : 55
+    "Needs Building" : 35
+    "Polish/Testing" : 10
+</pre>
+</div>
+
+<h3>Backend Status</h3>
+<table>
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Express server + middleware</td><td><span class="tag tag-done">DONE</span></td><td>Running on :5050</td></tr>
+  <tr><td>Prisma ORM + SQLite</td><td><span class="tag tag-done">DONE</span></td><td>Schema, migrations, seeding</td></tr>
+  <tr><td>Locker CRUD</td><td><span class="tag tag-done">DONE</span></td><td>Create, list, filter, update</td></tr>
+  <tr><td>Rental workflow</td><td><span class="tag tag-done">DONE</span></td><td>Rent, complete, cancel</td></tr>
+  <tr><td>Stats/Analytics API</td><td><span class="tag tag-done">DONE</span></td><td>Utilization, revenue, breakdowns</td></tr>
+  <tr><td>Zod validation</td><td><span class="tag tag-done">DONE</span></td><td>All endpoints validated</td></tr>
+  <tr><td>Error handling</td><td><span class="tag tag-done">DONE</span></td><td>AppError + global handler</td></tr>
+  <tr><td>Database seeding</td><td><span class="tag tag-done">DONE</span></td><td>24 lockers + 18 rentals</td></tr>
+  <tr><td>Authentication (JWT)</td><td><span class="tag tag-todo">TODO</span></td><td>Login, register, token refresh</td></tr>
+  <tr><td>QR code generation</td><td><span class="tag tag-todo">TODO</span></td><td>Need qrcode npm package</td></tr>
+  <tr><td>Access code generation</td><td><span class="tag tag-todo">TODO</span></td><td>6-digit, 5min expiry, hashed</td></tr>
+  <tr><td>Rental extension</td><td><span class="tag tag-todo">TODO</span></td><td>Extend before expiry</td></tr>
+  <tr><td>Mock payment</td><td><span class="tag tag-todo">TODO</span></td><td>Pricing exists, need gateway mock</td></tr>
+  <tr><td>Notification system</td><td><span class="tag tag-todo">TODO</span></td><td>Cron jobs + in-app alerts</td></tr>
+  <tr><td>Staff endpoints</td><td><span class="tag tag-todo">TODO</span></td><td>Override, assign, approve users</td></tr>
+  <tr><td>User management</td><td><span class="tag tag-todo">TODO</span></td><td>User model, roles, RBAC</td></tr>
+  <tr><td>Rate limiting</td><td><span class="tag tag-todo">TODO</span></td><td>express-rate-limit</td></tr>
+</table>
+
+<h3>Frontend Status</h3>
+<table>
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Dashboard page</td><td><span class="tag tag-done">DONE</span></td><td>Stat cards + recent rentals</td></tr>
+  <tr><td>Locker grid + filters</td><td><span class="tag tag-done">DONE</span></td><td>Status/type filtering works</td></tr>
+  <tr><td>Create locker modal</td><td><span class="tag tag-done">DONE</span></td><td>Form with validation</td></tr>
+  <tr><td>Rent locker modal</td><td><span class="tag tag-done">DONE</span></td><td>Confirmation flow</td></tr>
+  <tr><td>Rentals history page</td><td><span class="tag tag-done">DONE</span></td><td>List with end rental button</td></tr>
+  <tr><td>Analytics page</td><td><span class="tag tag-done">DONE</span></td><td>Pie charts, bar charts, KPIs</td></tr>
+  <tr><td>Sidebar + Topbar</td><td><span class="tag tag-done">DONE</span></td><td>Role-based nav</td></tr>
+  <tr><td>Login page</td><td><span class="tag tag-partial">STUB</span></td><td>Form exists, no logic</td></tr>
+  <tr><td>Register page</td><td><span class="tag tag-partial">STUB</span></td><td>Form exists, no logic</td></tr>
+  <tr><td>QR scanner view</td><td><span class="tag tag-todo">TODO</span></td><td>Camera + QR decode</td></tr>
+  <tr><td>Access code display</td><td><span class="tag tag-todo">TODO</span></td><td>Show code + countdown timer</td></tr>
+  <tr><td>Notification bell + panel</td><td><span class="tag tag-todo">TODO</span></td><td>Bell icon already in Topbar</td></tr>
+  <tr><td>Staff management page</td><td><span class="tag tag-todo">TODO</span></td><td>Override, assign, approve</td></tr>
+  <tr><td>Payment flow UI</td><td><span class="tag tag-todo">TODO</span></td><td>Method selection + confirmation</td></tr>
+  <tr><td>Toast notifications</td><td><span class="tag tag-todo">TODO</span></td><td>Success/error feedback</td></tr>
+  <tr><td>Protected routes</td><td><span class="tag tag-todo">TODO</span></td><td>Redirect if not logged in</td></tr>
+</table>
+
+<h3>Testing & DevOps</h3>
+<table>
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Unit tests</td><td><span class="tag tag-todo">TODO</span></td><td>Zero tests written</td></tr>
+  <tr><td>Integration tests</td><td><span class="tag tag-todo">TODO</span></td><td>Need API test suite</td></tr>
+  <tr><td>Docker setup</td><td><span class="tag tag-todo">SKIP</span></td><td>Not needed for demo</td></tr>
+  <tr><td>CI/CD</td><td><span class="tag tag-todo">SKIP</span></td><td>Not needed for demo</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="plan">4-Day Sprint Plan</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+gantt
+    title Sprint to Sunday (April 5)
+    dateFormat  YYYY-MM-DD
+    axisFormat %a %d
+
+    section Day 1 - April 1
+    Auth (JWT login/register)          :a1, 2026-04-01, 1d
+    QR code generation                 :a2, 2026-04-01, 1d
+    Access code system                 :a3, 2026-04-01, 1d
+
+    section Day 2 - April 2
+    User model + roles in DB           :b1, 2026-04-02, 1d
+    Staff endpoints + UI               :b2, 2026-04-02, 1d
+    Mock payment flow                  :b3, 2026-04-02, 1d
+
+    section Day 3 - April 3
+    Notifications system               :c1, 2026-04-03, 1d
+    Rental extensions                  :c2, 2026-04-03, 1d
+    Expiry cron jobs                   :c3, 2026-04-03, 1d
+    Protected routes                   :c4, 2026-04-03, 1d
+
+    section Day 4 - April 4
+    Bug fixes + polish                 :d1, 2026-04-04, 1d
+    Basic API tests                    :d2, 2026-04-04, 1d
+    README + screenshots               :d3, 2026-04-04, 1d
+    Demo prep                          :d4, 2026-04-04, 1d
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="howtorun">How to Run the Project</h2>
+
+<div class="card">
+  <h3>1. Clone & Install</h3>
+  <pre style="color: var(--green);">
+git clone [repo-url]
+cd CapstoneProject
+
+# Terminal 1 - Backend
+cd backend
+npm install
+npx prisma generate
+npx prisma db push
+node prisma/seed.js
+npm run dev          # Starts on http://localhost:5050
+
+# Terminal 2 - Frontend
+cd frontend
+npm install
+npm run dev          # Starts on http://localhost:5173
+  </pre>
+
+  <h3>2. Open in Browser</h3>
+  <p>Go to <code>http://localhost:5173</code></p>
+  <p>Currently auto-logged in as <code>user_demo_1</code> (Owner role)</p>
+
+  <h3>3. Test the API directly</h3>
+  <pre style="color: var(--green);">
+# Health check
+curl http://localhost:5050/health
+
+# List lockers
+curl http://localhost:5050/api/v1/lockers
+
+# Create a rental
+curl -X POST http://localhost:5050/api/v1/rentals \
+  -H "Content-Type: application/json" \
+  -d '{"lockerId": "LOCKER_ID_HERE"}'
+
+# Get stats
+curl http://localhost:5050/api/v1/stats
+  </pre>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="pricing">Pricing Model</h2>
+<div class="card">
+  <table>
+    <tr><th>Locker Size</th><th>Price</th><th>Use Case</th></tr>
+    <tr><td>SMALL</td><td>$5.00</td><td>Phone, wallet, keys</td></tr>
+    <tr><td>MEDIUM</td><td>$8.00</td><td>Backpack, laptop bag</td></tr>
+    <tr><td>LARGE</td><td>$12.00</td><td>Suitcase, large bag</td></tr>
+  </table>
+  <p>Prices are per rental session. All payments are <strong>mock/simulated</strong> &mdash; no real money involved.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="git">Git Branches</h2>
+<div class="card">
+  <ul>
+    <li><code>main</code> &mdash; Default/stable branch</li>
+    <li><code>Gurnoor</code> &mdash; Current working branch (most recent code)</li>
+    <li><code>John</code> &mdash; John's branch</li>
+    <li><code>matthew</code> &mdash; Matthew's branch</li>
+    <li><code>kooroshFarv</code> &mdash; Koorosh's branch</li>
+  </ul>
+  <p><strong>Current active branch:</strong> <code>Gurnoor</code> (has the latest merged code)</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="glossary">Quick Glossary</h2>
+<table>
+  <tr><th>Term</th><th>What It Means</th></tr>
+  <tr><td><strong>Tenant</strong></td><td>A business/organization using our platform (e.g., "Airport Corp")</td></tr>
+  <tr><td><strong>Multi-tenant</strong></td><td>One app serves many businesses, each with isolated data</td></tr>
+  <tr><td><strong>tenantId</strong></td><td>ID that separates data between businesses in the database</td></tr>
+  <tr><td><strong>Prisma</strong></td><td>ORM library - lets us write JS instead of raw SQL</td></tr>
+  <tr><td><strong>Zod</strong></td><td>Library that validates incoming request data (correct types, required fields)</td></tr>
+  <tr><td><strong>JWT</strong></td><td>JSON Web Token - the auth token users get when they log in</td></tr>
+  <tr><td><strong>RBAC</strong></td><td>Role-Based Access Control - different roles see different things</td></tr>
+  <tr><td><strong>Cron job</strong></td><td>Background task that runs on a schedule (e.g., check expired rentals every minute)</td></tr>
+  <tr><td><strong>Access code</strong></td><td>6-digit PIN generated to unlock a rented locker (expires in 5 min)</td></tr>
+  <tr><td><strong>Grace period</strong></td><td>Extra time after rental expires before it's marked overdue</td></tr>
+</table>
+
+<br><br>
+<div class="alert alert-green">
+  <strong>Questions?</strong> Drop them in the Discord. Let's ship this by Sunday.
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    sequence: { useMaxWidth: true },
+    gantt: { useMaxWidth: true }
+  });
+</script>
+
+</body>
+</html>
