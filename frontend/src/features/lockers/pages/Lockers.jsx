@@ -1,66 +1,118 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/clerk-react";
-import { useAuthedApi } from "../../../lib/useAuthedApi";
+import { getLockers } from "../lockers.api";
+import LockerGrid from "../components/LockerGrid";
+import CreateLockerModal from "../components/CreateLockerModal";
+import RentLockerModal from "../components/RentLockerModal";
+import { useAuth } from "../../auth/useAuth";
+import { Plus } from "lucide-react";
+
+const STATUS_TABS = [
+  { label: "All", value: "" },
+  { label: "Available", value: "AVAILABLE" },
+  { label: "Occupied", value: "OCCUPIED" },
+  { label: "Maintenance", value: "MAINTENANCE" },
+];
 
 export default function Lockers() {
-  const api = useAuthedApi();
-  const { isLoaded, isSignedIn } = useAuth();
-
+  const { user } = useAuth();
+  const canManage = ["STAFF", "OWNER"].includes(user?.role);
   const [lockers, setLockers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [rentLocker, setRentLocker] = useState(null);
+
+  function fetchLockers() {
+    setLoading(true);
+    getLockers()
+      .then((res) => setLockers(res.data.data ?? res.data.lockers ?? res.data))
+      .catch(() => setError("Failed to load lockers."))
+      .finally(() => setLoading(false));
+  }
 
   useEffect(() => {
-    if (!isLoaded) return;
+    fetchLockers();
+  }, []);
 
-    if (!isSignedIn) {
-      setLoading(false);
-      return;
-    }
+  const filtered = filter
+    ? lockers.filter((l) => l.status === filter)
+    : lockers;
 
-    let mounted = true;
+  const counts = {
+    "": lockers.length,
+    AVAILABLE: lockers.filter((l) => l.status === "AVAILABLE").length,
+    OCCUPIED: lockers.filter((l) => l.status === "OCCUPIED").length,
+    MAINTENANCE: lockers.filter((l) => l.status === "MAINTENANCE").length,
+  };
 
-    async function load() {
-      setLoading(true);
-      setErr("");
-      try {
-        const res = await api.get("/lockers");
-        if (!mounted) return;
-        setLockers(res.data.data ?? []);
-      } catch (e) {
-        if (!mounted) return;
-        setErr(e?.response?.data?.message || e.message || "Failed to load lockers");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      </div>
+    );
 
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [isLoaded, isSignedIn]);
-
-  if (loading) return <div className="text-slate-600">Loading lockers...</div>;
-  if (err) return <div className="text-red-600">{err}</div>;
+  if (error) return <div className="p-8 text-red-600">{error}</div>;
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Lockers</h2>
-      {lockers.length === 0 ? (
-        <div className="text-slate-500">No lockers found.</div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {lockers.map((l) => (
-            <div key={l.id} className="bg-white rounded-xl border p-4 shadow-sm">
-              <div className="font-semibold">{l.location}</div>
-              <div className="text-sm text-slate-600">Locker: {l.lockerNumber}</div>
-              <div className="text-sm text-slate-600">Status: {l.status}</div>
-              <div className="text-sm text-slate-600">{l.type} • {l.tier}</div>
-            </div>
-          ))}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Lockers</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            {lockers.length} total lockers
+          </p>
         </div>
+        {canManage && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
+          >
+            <Plus size={16} />
+            Add Locker
+          </button>
+        )}
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setFilter(tab.value)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              filter === tab.value
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-slate-600 hover:bg-slate-50 shadow-sm"
+            }`}
+          >
+            {tab.label}
+            <span className="ml-2 text-xs opacity-70">
+              {counts[tab.value]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <LockerGrid lockers={filtered} onRent={(locker) => setRentLocker(locker)} />
+
+      {/* Modals */}
+      {canManage && (
+        <CreateLockerModal
+          open={showCreate}
+          onClose={() => setShowCreate(false)}
+          onCreated={fetchLockers}
+        />
       )}
+      <RentLockerModal
+        open={!!rentLocker}
+        locker={rentLocker}
+        onClose={() => setRentLocker(null)}
+        onRented={fetchLockers}
+      />
     </div>
   );
 }

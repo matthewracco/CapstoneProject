@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLocker - Implementation Guide (What to Build & Where)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --orange: #db6d28;
+    --purple: #bc8cff;
+    --pink: #f778ba;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 2.2rem; margin-bottom: 0.5rem; color: var(--accent); }
+  h2 { font-size: 1.6rem; margin-top: 3rem; margin-bottom: 1rem; color: var(--green); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  h3 { font-size: 1.25rem; margin-top: 2rem; margin-bottom: 0.75rem; color: var(--purple); }
+  h4 { font-size: 1.05rem; margin-top: 1.2rem; margin-bottom: 0.5rem; color: var(--yellow); }
+  p, li { color: var(--text); margin-bottom: 0.5rem; }
+  .subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+  .diagram-box {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+  }
+  pre.code {
+    background: #1a1e26;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0.75rem 0;
+  }
+  .file-path {
+    background: rgba(88,166,255,0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    display: inline-block;
+    margin: 0.3rem 0;
+  }
+  .new-file {
+    background: rgba(63,185,80,0.15);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .new-file::before { content: "NEW "; font-weight: bold; }
+  .edit-file {
+    background: rgba(210,153,34,0.15);
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+  .edit-file::before { content: "EDIT "; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.6rem 1rem; text-align: left; border: 1px solid var(--border); }
+  th { background: var(--surface); color: var(--accent); }
+  code {
+    background: var(--surface);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--orange);
+  }
+  .alert {
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 500;
+  }
+  .alert-red { background: rgba(248,81,73,0.15); border: 1px solid var(--red); }
+  .alert-green { background: rgba(63,185,80,0.15); border: 1px solid var(--green); }
+  .alert-yellow { background: rgba(210,153,34,0.15); border: 1px solid var(--yellow); }
+  .alert-blue { background: rgba(88,166,255,0.15); border: 1px solid var(--accent); }
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-right: 0.3rem;
+  }
+  .tag-new { background: #238636; color: white; }
+  .tag-edit { background: #9e6a03; color: white; }
+  .tag-npm { background: #bc3e36; color: white; }
+  ul { padding-left: 1.5rem; margin: 0.5rem 0; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 768px) { .cols { grid-template-columns: 1fr; } }
+  .kw { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .fn { color: #d2a8ff; }
+  .cm { color: #8b949e; }
+  .num { color: #79c0ff; }
+  details { margin: 0.5rem 0; }
+  details > summary {
+    cursor: pointer;
+    padding: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  details[open] > summary { border-radius: 4px 4px 0 0; border-bottom: none; }
+  details > .detail-content {
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+  }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    color: #000;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Implementation Guide: What to Build & Where</h1>
+<p class="subtitle">Exact file paths, code patterns, and instructions for every missing feature. Follow the existing patterns.</p>
+
+<div class="alert alert-red">
+  <strong>DEADLINE: Sunday, April 5.</strong> This guide shows EVERY new file and edit needed. Each section is independent &mdash; team members can work in parallel.
+</div>
+
+<!-- ============================================================ -->
+<h2>File Map: What Exists vs What's Needed</h2>
+<p>Green = NEW file to create. Yellow = EXISTING file to edit. Grey = already done.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+graph LR
+    subgraph "backend/src/"
+        direction TB
+        subgraph "routes/"
+            R1["locker.routes.js ✅"]
+            R2["rental.routes.js ✅"]
+            R3["stats.routes.js ✅"]
+            R4["auth.routes.js 🟢 NEW"]
+            R5["notification.routes.js 🟢 NEW"]
+            R6["payment.routes.js 🟢 NEW"]
+            R7["user.routes.js 🟢 NEW"]
+        end
+        subgraph "controllers/"
+            C1["locker.controller.js ✅"]
+            C2["rental.controller.js ✅"]
+            C3["auth.controller.js 🟢 NEW"]
+            C4["notification.controller.js 🟢 NEW"]
+            C5["payment.controller.js 🟢 NEW"]
+            C6["user.controller.js 🟢 NEW"]
+        end
+        subgraph "services/"
+            S1["locker.service.js ✅"]
+            S2["rental.service.js 🟡 EDIT"]
+            S3["auth.service.js 🟢 NEW"]
+            S4["notification.service.js 🟢 NEW"]
+            S5["payment.service.js 🟢 NEW"]
+            S6["qr.service.js 🟢 NEW"]
+            S7["accessCode.service.js 🟢 NEW"]
+            S8["user.service.js 🟢 NEW"]
+        end
+        subgraph "middleware/"
+            M1["clerkTenant.js 🟡 REPLACE"]
+            M2["errorHandler.js ✅"]
+            M3["validate.js ✅"]
+            M4["rbac.js 🟢 NEW"]
+        end
+        subgraph "validators/"
+            V1["locker.validator.js ✅"]
+            V2["rental.validator.js ✅"]
+            V3["auth.validator.js 🟢 NEW"]
+        end
+        subgraph "jobs/"
+            J1["expiryChecker.js 🟢 NEW"]
+        end
+    end
+
+    style R4 fill:#238636,color:#fff
+    style R5 fill:#238636,color:#fff
+    style R6 fill:#238636,color:#fff
+    style R7 fill:#238636,color:#fff
+    style C3 fill:#238636,color:#fff
+    style C4 fill:#238636,color:#fff
+    style C5 fill:#238636,color:#fff
+    style C6 fill:#238636,color:#fff
+    style S3 fill:#238636,color:#fff
+    style S4 fill:#238636,color:#fff
+    style S5 fill:#238636,color:#fff
+    style S6 fill:#238636,color:#fff
+    style S7 fill:#238636,color:#fff
+    style S8 fill:#238636,color:#fff
+    style M1 fill:#9e6a03,color:#fff
+    style M4 fill:#238636,color:#fff
+    style V3 fill:#238636,color:#fff
+    style J1 fill:#238636,color:#fff
+    style S2 fill:#9e6a03,color:#fff
+</pre>
+</div>
+
+<div class="diagram-box">
+<pre class="mermaid">
+graph LR
+    subgraph "frontend/src/"
+        direction TB
+        subgraph "features/auth/"
+            FA1["AuthContext.jsx 🟡 EDIT"]
+            FA2["useAuth.js ✅"]
+            FA3["auth.api.js 🟡 EDIT"]
+            FA4["pages/Login.jsx 🟡 EDIT"]
+            FA5["pages/Register.jsx 🟡 EDIT"]
+        end
+        subgraph "features/lockers/"
+            FL1["pages/Lockers.jsx ✅"]
+            FL2["components/QRCodeDisplay.jsx 🟢 NEW"]
+            FL3["components/AccessCodeModal.jsx 🟢 NEW"]
+        end
+        subgraph "features/rentals/"
+            FR1["pages/Rentals.jsx 🟡 EDIT"]
+            FR2["components/ExtendRentalModal.jsx 🟢 NEW"]
+            FR3["components/PaymentModal.jsx 🟢 NEW"]
+        end
+        subgraph "features/notifications/"
+            FN1["Notifications.jsx 🟢 NEW"]
+            FN2["notifications.api.js 🟢 NEW"]
+            FN3["NotificationBell.jsx 🟢 NEW"]
+        end
+        subgraph "features/staff/"
+            FS1["pages/StaffDashboard.jsx 🟢 NEW"]
+            FS2["components/OverrideModal.jsx 🟢 NEW"]
+            FS3["staff.api.js 🟢 NEW"]
+        end
+        subgraph "features/users/"
+            FU1["pages/UserManagement.jsx 🟢 NEW"]
+            FU2["users.api.js 🟢 NEW"]
+        end
+        subgraph "app/"
+            AP1["App.jsx 🟡 EDIT"]
+            AP2["layout/Sidebar.jsx 🟡 EDIT"]
+            AP3["layout/Topbar.jsx 🟡 EDIT"]
+            AP4["components/ProtectedRoute.jsx 🟢 NEW"]
+            AP5["components/Toast.jsx 🟢 NEW"]
+        end
+    end
+
+    style FA1 fill:#9e6a03,color:#fff
+    style FA3 fill:#9e6a03,color:#fff
+    style FA4 fill:#9e6a03,color:#fff
+    style FA5 fill:#9e6a03,color:#fff
+    style FL2 fill:#238636,color:#fff
+    style FL3 fill:#238636,color:#fff
+    style FR1 fill:#9e6a03,color:#fff
+    style FR2 fill:#238636,color:#fff
+    style FR3 fill:#238636,color:#fff
+    style FN1 fill:#238636,color:#fff
+    style FN2 fill:#238636,color:#fff
+    style FN3 fill:#238636,color:#fff
+    style FS1 fill:#238636,color:#fff
+    style FS2 fill:#238636,color:#fff
+    style FS3 fill:#238636,color:#fff
+    style FU1 fill:#238636,color:#fff
+    style FU2 fill:#238636,color:#fff
+    style AP1 fill:#9e6a03,color:#fff
+    style AP2 fill:#9e6a03,color:#fff
+    style AP3 fill:#9e6a03,color:#fff
+    style AP4 fill:#238636,color:#fff
+    style AP5 fill:#238636,color:#fff
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>NPM Packages to Install First</h2>
+
+<div class="card">
+<pre class="code"><span class="cm"># Backend - run in /backend folder</span>
+npm install bcryptjs jsonwebtoken qrcode node-cron
+
+<span class="cm"># bcryptjs   - password hashing + access code hashing</span>
+<span class="cm"># jsonwebtoken - JWT token creation + verification</span>
+<span class="cm"># qrcode     - generate QR code images</span>
+<span class="cm"># node-cron  - schedule background jobs (expiry checks)</span>
+
+<span class="cm"># Frontend - run in /frontend folder</span>
+npm install react-hot-toast html5-qrcode
+
+<span class="cm"># react-hot-toast - toast notifications (success/error popups)</span>
+<span class="cm"># html5-qrcode   - QR code scanner using device camera</span>
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<!-- FEATURE 1: DATABASE SCHEMA UPDATE -->
+<!-- ============================================================ -->
+<h2 id="feat-schema">Feature 1: Database Schema Update</h2>
+<p>Before building anything, we need to add User and Notification models to the database.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+erDiagram
+    USER {
+        string id PK "CUID"
+        string tenantId
+        string email "unique per tenant"
+        string passwordHash "bcrypt"
+        string name
+        string role "CUSTOMER | STAFF | OWNER"
+        int failedLogins "default 0"
+        datetime lockedUntil "null if not locked"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    LOCKER {
+        string id PK
+        string tenantId
+        string lockerNumber
+        string location
+        string status
+        string type
+        string tier
+        string qrCode
+        string accessCode "hashed"
+        string accessCodeExpiry "datetime"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    RENTAL {
+        string id PK
+        string tenantId
+        string userId
+        string lockerId FK
+        string status
+        string rentalCode
+        float totalCost
+        string paymentStatus
+        datetime startTime
+        datetime endTime
+        datetime maxEndTime "48hr limit"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    PAYMENT {
+        string id PK
+        string tenantId
+        string rentalId FK
+        string userId
+        float amount
+        string method "mock_card etc"
+        string status "PENDING | SUCCESS | FAILED"
+        datetime createdAt
+    }
+
+    NOTIFICATION {
+        string id PK
+        string tenantId
+        string userId
+        string type "RENTAL_CONFIRMATION etc"
+        string title
+        string body
+        boolean read "default false"
+        datetime createdAt
+    }
+
+    USER ||--o{ RENTAL : "rents"
+    LOCKER ||--o{ RENTAL : "rented via"
+    RENTAL ||--o{ PAYMENT : "paid by"
+    USER ||--o{ NOTIFICATION : "receives"
+</pre>
+</div>
+
+<h3>What to change</h3>
+<span class="file-path edit-file">backend/prisma/schema.prisma</span>
+<p>Add these models BELOW the existing Rental model:</p>
+
+<details>
+<summary>Click to see the full schema additions</summary>
+<div class="detail-content">
+<pre class="code"><span class="cm">// ADD these new models to schema.prisma</span>
+<span class="cm">// Keep ALL existing Locker and Rental models as-is</span>
+<span class="cm">// Just ADD the following at the bottom:</span>
+
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String
+  email        String
+  passwordHash String
+  name         String
+  role         String    @default("CUSTOMER") <span class="cm">// CUSTOMER | STAFF | OWNER</span>
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, email])
+  @@index([tenantId, role])
+}
+
+model Payment {
+  id       String @id @default(cuid())
+  tenantId String
+  rentalId String
+  userId   String
+  amount   Float
+  method   String @default("mock_card")   <span class="cm">// mock_card | mock_card_fail | mock_wallet | subscription</span>
+  status   String @default("PENDING")     <span class="cm">// PENDING | SUCCESS | FAILED</span>
+
+  createdAt DateTime @default(now())
+
+  rental Rental @relation(fields: [rentalId], references: [id])
+
+  @@index([tenantId, userId])
+}
+
+model Notification {
+  id       String  @id @default(cuid())
+  tenantId String
+  userId   String
+  type     String  <span class="cm">// RENTAL_CONFIRMATION | EXPIRY_WARNING | RENTAL_EXPIRED | RENTAL_OVERDUE</span>
+  title    String
+  body     String
+  read     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, userId])
+  @@index([tenantId, userId, read])
+}
+</pre>
+
+<p>Also ADD to the existing <strong>Locker</strong> model:</p>
+<pre class="code"><span class="cm">// Inside the Locker model, add this field after accessCode:</span>
+  accessCodeExpiry DateTime?
+</pre>
+
+<p>Also ADD to the existing <strong>Rental</strong> model:</p>
+<pre class="code"><span class="cm">// Inside the Rental model, add these fields:</span>
+  maxEndTime DateTime?       <span class="cm">// 48 hour max from start</span>
+  payments   Payment[]       <span class="cm">// Add relation to Payment</span>
+</pre>
+
+<p><strong>After editing, run:</strong></p>
+<pre class="code">cd backend
+npx prisma migrate dev --name add-users-payments-notifications
+npx prisma generate
+</pre>
+</div>
+</details>
+
+<!-- ============================================================ -->
+<!-- FEATURE 2: AUTHENTICATION -->
+<!-- ============================================================ -->
+<h2 id="feat-auth">Feature 2: Authentication (JWT)</h2>
+<p>Replace the stubbed auth with real JWT login/register. This is the #1 priority.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant API as Express API
+    participant DB as Database
+
+    Note over User, DB: REGISTER FLOW
+    User->>Frontend: Fill name, email, password
+    Frontend->>API: POST /api/v1/auth/register
+    API->>API: Validate with Zod
+    API->>DB: Check if email exists for tenant
+    alt Email taken
+        API-->>Frontend: 409 "Email already registered"
+    else Email available
+        API->>API: bcrypt.hash(password, 12)
+        API->>DB: CREATE User
+        API->>API: jwt.sign({userId, tenantId, role})
+        API-->>Frontend: 201 {user, token, refreshToken}
+    end
+    Frontend->>Frontend: Store tokens in localStorage
+
+    Note over User, DB: LOGIN FLOW
+    User->>Frontend: Enter email, password
+    Frontend->>API: POST /api/v1/auth/login
+    API->>DB: Find user by email + tenantId
+    alt User not found
+        API-->>Frontend: 401 "Invalid credentials"
+    else User found
+        API->>API: Check lockedUntil (account lockout)
+        API->>API: bcrypt.compare(password, hash)
+        alt Password wrong
+            API->>DB: Increment failedLogins
+            alt failedLogins >= 5
+                API->>DB: Set lockedUntil = now + 15min
+                API-->>Frontend: 423 "Account locked"
+            else
+                API-->>Frontend: 401 "Invalid credentials"
+            end
+        else Password correct
+            API->>DB: Reset failedLogins to 0
+            API->>API: jwt.sign({userId, tenantId, role})
+            API-->>Frontend: 200 {user, token, refreshToken}
+        end
+    end
+</pre>
+</div>
+
+<h3>Backend Files</h3>
+
+<h4><span class="step-num">1</span> Auth Service</h4>
+<span class="file-path new-file">backend/src/services/auth.service.js</span>
+<details>
+<summary>What this file does + code structure</summary>
+<div class="detail-content">
+<p>Handles all authentication business logic: register, login, token generation.</p>
+<pre class="code"><span class="kw">const</span> bcrypt = require(<span class="str">"bcryptjs"</span>);
+<span class="kw">const</span> jwt = require(<span class="str">"jsonwebtoken"</span>);
+<span class="kw">const</span> prisma = require(<span class="str">"../config/prisma"</span>);
+<span class="kw">const</span> AppError = require(<span class="str">"../utils/AppError"</span>);
+
+<span class="kw">const</span> JWT_SECRET = process.env.JWT_SECRET || <span class="str">"smartlocker-secret-key-change-in-prod"</span>;
+<span class="kw">const</span> JWT_EXPIRES_IN = <span class="str">"15m"</span>;
+<span class="kw">const</span> REFRESH_SECRET = process.env.REFRESH_SECRET || <span class="str">"smartlocker-refresh-secret"</span>;
+<span class="kw">const</span> REFRESH_EXPIRES_IN = <span class="str">"7d"</span>;
+<span class="kw">const</span> SALT_ROUNDS = <span class="num">12</span>;
+<span class="kw">const</span> MAX_FAILED_LOGINS = <span class="num">5</span>;
+<span class="kw">const</span> LOCKOUT_MINUTES = <span class="num">15</span>;
+
+<span class="kw">function</span> <span class="fn">generateTokens</span>(user) {
+  <span class="cm">// Create access token (short-lived) and refresh token (long-lived)</span>
+  <span class="cm">// Payload: { userId: user.id, tenantId: user.tenantId, role: user.role }</span>
+  <span class="cm">// Return: { token, refreshToken }</span>
+}
+
+<span class="kw">async function</span> <span class="fn">register</span>({ tenantId, email, password, name }) {
+  <span class="cm">// 1. Check if email already exists for this tenant</span>
+  <span class="cm">// 2. Hash password with bcrypt (SALT_ROUNDS = 12)</span>
+  <span class="cm">// 3. Create user in DB with role "CUSTOMER"</span>
+  <span class="cm">// 4. Generate JWT tokens</span>
+  <span class="cm">// 5. Return { user: { id, email, name, role }, ...tokens }</span>
+}
+
+<span class="kw">async function</span> <span class="fn">login</span>({ tenantId, email, password }) {
+  <span class="cm">// 1. Find user by email + tenantId</span>
+  <span class="cm">// 2. Check if account is locked (lockedUntil > now)</span>
+  <span class="cm">// 3. bcrypt.compare password</span>
+  <span class="cm">// 4. If wrong: increment failedLogins, lock if >= 5</span>
+  <span class="cm">// 5. If correct: reset failedLogins, generate tokens</span>
+  <span class="cm">// 6. Return { user, token, refreshToken }</span>
+}
+
+<span class="kw">async function</span> <span class="fn">refreshToken</span>(token) {
+  <span class="cm">// 1. Verify the refresh token</span>
+  <span class="cm">// 2. Find user by userId from token payload</span>
+  <span class="cm">// 3. Generate new token pair</span>
+  <span class="cm">// 4. Return new tokens</span>
+}
+
+module.exports = { register, login, refreshToken };
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">2</span> Auth Validator</h4>
+<span class="file-path new-file">backend/src/validators/auth.validator.js</span>
+<details>
+<summary>What this file does + code structure</summary>
+<div class="detail-content">
+<p>Zod schemas to validate register/login request bodies. Follow the pattern from <code>locker.validator.js</code>.</p>
+<pre class="code"><span class="kw">const</span> { z } = require(<span class="str">"zod"</span>);
+
+<span class="kw">const</span> registerSchema = z.object({
+  email: z.string().email(<span class="str">"Valid email required"</span>),
+  password: z.string().min(<span class="num">8</span>, <span class="str">"Password must be at least 8 characters"</span>),
+  name: z.string().min(<span class="num">1</span>, <span class="str">"Name is required"</span>),
+});
+
+<span class="kw">const</span> loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(<span class="num">1</span>),
+});
+
+module.exports = { registerSchema, loginSchema };
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">3</span> Auth Routes</h4>
+<span class="file-path new-file">backend/src/routes/auth.routes.js</span>
+<details>
+<summary>What this file does + code structure</summary>
+<div class="detail-content">
+<p>Three endpoints. Follow the pattern from <code>rental.routes.js</code>.</p>
+<pre class="code"><span class="kw">const</span> express = require(<span class="str">"express"</span>);
+<span class="kw">const</span> validate = require(<span class="str">"../middleware/validate"</span>);
+<span class="kw">const</span> { registerSchema, loginSchema } = require(<span class="str">"../validators/auth.validator"</span>);
+<span class="kw">const</span> authService = require(<span class="str">"../services/auth.service"</span>);
+
+<span class="kw">const</span> router = express.Router();
+
+<span class="cm">// POST /api/v1/auth/register</span>
+<span class="cm">// - validate body with registerSchema</span>
+<span class="cm">// - tenantId comes from header "x-tenant-id" or default to "tenant_demo_1"</span>
+<span class="cm">// - call authService.register()</span>
+<span class="cm">// - return 201 with { user, token, refreshToken }</span>
+
+<span class="cm">// POST /api/v1/auth/login</span>
+<span class="cm">// - validate body with loginSchema</span>
+<span class="cm">// - call authService.login()</span>
+<span class="cm">// - return 200 with { user, token, refreshToken }</span>
+
+<span class="cm">// POST /api/v1/auth/refresh</span>
+<span class="cm">// - read refreshToken from body</span>
+<span class="cm">// - call authService.refreshToken()</span>
+<span class="cm">// - return 200 with new tokens</span>
+
+module.exports = router;
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">4</span> Replace Auth Middleware</h4>
+<span class="file-path edit-file">backend/src/middleware/clerkTenant.js</span>
+<details>
+<summary>What to change</summary>
+<div class="detail-content">
+<p>Replace the stubbed auth with real JWT verification. Keep the BYPASS_AUTH escape hatch for development.</p>
+<pre class="code"><span class="kw">const</span> jwt = require(<span class="str">"jsonwebtoken"</span>);
+<span class="kw">const</span> AppError = require(<span class="str">"../utils/AppError"</span>);
+
+<span class="kw">const</span> JWT_SECRET = process.env.JWT_SECRET || <span class="str">"smartlocker-secret-key-change-in-prod"</span>;
+
+<span class="kw">function</span> <span class="fn">requireAuth</span>(req, res, next) {
+  <span class="cm">// Keep bypass for dev</span>
+  <span class="kw">if</span> (process.env.BYPASS_AUTH === <span class="str">"true"</span>) {
+    req.user = {
+      userId: process.env.DEV_USER_ID || <span class="str">"user_demo"</span>,
+      role: <span class="str">"OWNER"</span>,
+      tenantId: process.env.DEV_TENANT_ID || <span class="str">"tenant_demo"</span>,
+    };
+    <span class="kw">return</span> next();
+  }
+
+  <span class="cm">// Real auth: extract Bearer token from Authorization header</span>
+  <span class="kw">const</span> authHeader = req.headers.authorization;
+  <span class="kw">if</span> (!authHeader?.startsWith(<span class="str">"Bearer "</span>)) {
+    <span class="kw">return</span> next(<span class="kw">new</span> AppError(<span class="str">"No token provided"</span>, <span class="num">401</span>, <span class="str">"UNAUTHORIZED"</span>));
+  }
+
+  <span class="kw">const</span> token = authHeader.split(<span class="str">" "</span>)[<span class="num">1</span>];
+  <span class="kw">try</span> {
+    <span class="kw">const</span> decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded; <span class="cm">// { userId, tenantId, role }</span>
+    next();
+  } <span class="kw">catch</span> (err) {
+    next(<span class="kw">new</span> AppError(<span class="str">"Invalid or expired token"</span>, <span class="num">401</span>, <span class="str">"TOKEN_INVALID"</span>));
+  }
+}
+
+<span class="kw">function</span> <span class="fn">requireTenant</span>(req, res, next) {
+  <span class="cm">// If auth passed, tenantId is already in req.user from JWT</span>
+  <span class="kw">if</span> (process.env.BYPASS_AUTH === <span class="str">"true"</span>) {
+    req.tenantId = process.env.DEV_TENANT_ID || <span class="str">"tenant_demo"</span>;
+    <span class="kw">return</span> next();
+  }
+
+  req.tenantId = req.user?.tenantId;
+  <span class="kw">if</span> (!req.tenantId) {
+    <span class="kw">return</span> next(<span class="kw">new</span> AppError(<span class="str">"Tenant required"</span>, <span class="num">400</span>, <span class="str">"TENANT_REQUIRED"</span>));
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireTenant };
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">5</span> RBAC Middleware (Role Check)</h4>
+<span class="file-path new-file">backend/src/middleware/rbac.js</span>
+<details>
+<summary>What this file does + code</summary>
+<div class="detail-content">
+<p>Simple middleware that checks if the logged-in user has the required role.</p>
+<pre class="code"><span class="kw">const</span> AppError = require(<span class="str">"../utils/AppError"</span>);
+
+<span class="cm">// Usage: router.get("/admin-only", requireAuth, requireTenant, requireRole("OWNER", "STAFF"), handler)</span>
+<span class="kw">function</span> <span class="fn">requireRole</span>(...allowedRoles) {
+  <span class="kw">return</span> (req, res, next) => {
+    <span class="kw">if</span> (process.env.BYPASS_AUTH === <span class="str">"true"</span>) <span class="kw">return</span> next();
+
+    <span class="kw">const</span> userRole = req.user?.role;
+    <span class="kw">if</span> (!userRole || !allowedRoles.includes(userRole)) {
+      <span class="kw">return</span> next(<span class="kw">new</span> AppError(<span class="str">"Insufficient permissions"</span>, <span class="num">403</span>, <span class="str">"FORBIDDEN"</span>));
+    }
+    next();
+  };
+}
+
+module.exports = { requireRole };
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">6</span> Register auth routes in app.js</h4>
+<span class="file-path edit-file">backend/src/app.js</span>
+<details>
+<summary>What to add</summary>
+<div class="detail-content">
+<pre class="code"><span class="cm">// Add at top with other requires:</span>
+<span class="kw">const</span> authRoutes = require(<span class="str">"./routes/auth.routes"</span>);
+
+<span class="cm">// Add BEFORE the other routes (auth doesn't need requireAuth middleware):</span>
+app.use(<span class="str">"/api/v1/auth"</span>, authRoutes);
+</pre>
+</div>
+</details>
+
+<h3>Frontend Files</h3>
+
+<h4><span class="step-num">7</span> Auth API</h4>
+<span class="file-path edit-file">frontend/src/features/auth/auth.api.js</span>
+<details>
+<summary>What to put in here</summary>
+<div class="detail-content">
+<pre class="code"><span class="kw">import</span> api <span class="kw">from</span> <span class="str">"../../lib/axios"</span>;
+
+<span class="kw">export const</span> <span class="fn">registerUser</span> = (data) => api.post(<span class="str">"/auth/register"</span>, data);
+<span class="kw">export const</span> <span class="fn">loginUser</span> = (data) => api.post(<span class="str">"/auth/login"</span>, data);
+<span class="kw">export const</span> <span class="fn">refreshToken</span> = (token) => api.post(<span class="str">"/auth/refresh"</span>, { refreshToken: token });
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">8</span> Update AuthContext</h4>
+<span class="file-path edit-file">frontend/src/features/auth/AuthContext.jsx</span>
+<details>
+<summary>What to change</summary>
+<div class="detail-content">
+<p>Replace the hardcoded DEMO_USER with real auth that reads from localStorage.</p>
+<pre class="code"><span class="kw">import</span> { createContext, useState, useEffect } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">export const</span> AuthContext = createContext();
+
+<span class="kw">export function</span> <span class="fn">AuthProvider</span>({ children }) {
+  <span class="kw">const</span> [user, setUser] = useState(<span class="kw">null</span>);
+  <span class="kw">const</span> [loading, setLoading] = useState(<span class="kw">true</span>);
+
+  useEffect(() => {
+    <span class="cm">// On mount, check localStorage for existing auth</span>
+    <span class="kw">const</span> stored = localStorage.getItem(<span class="str">"auth"</span>);
+    <span class="kw">if</span> (stored) {
+      <span class="kw">const</span> parsed = JSON.parse(stored);
+      setUser(parsed.user);
+    }
+    setLoading(<span class="kw">false</span>);
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">login</span> = (data) => {
+    <span class="cm">// data = { user, token, refreshToken } from API response</span>
+    localStorage.setItem(<span class="str">"auth"</span>, JSON.stringify(data));
+    setUser(data.user);
+  };
+
+  <span class="kw">const</span> <span class="fn">logout</span> = () => {
+    localStorage.removeItem(<span class="str">"auth"</span>);
+    setUser(<span class="kw">null</span>);
+  };
+
+  <span class="kw">return</span> (
+    &lt;AuthContext.Provider value={{ user, login, logout, loading }}&gt;
+      {children}
+    &lt;/AuthContext.Provider&gt;
+  );
+}
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">9</span> Login Page</h4>
+<span class="file-path edit-file">frontend/src/features/auth/pages/Login.jsx</span>
+<details>
+<summary>What it should do</summary>
+<div class="detail-content">
+<p>Form with email + password fields. On submit, call <code>loginUser()</code> from auth.api.js, then call <code>login()</code> from AuthContext, then redirect to <code>/</code>.</p>
+<pre class="code"><span class="cm">// Key logic:</span>
+<span class="kw">const</span> { login } = useAuth();
+<span class="kw">const</span> navigate = useNavigate();
+
+<span class="kw">const</span> <span class="fn">handleSubmit</span> = <span class="kw">async</span> (e) => {
+  e.preventDefault();
+  <span class="kw">try</span> {
+    <span class="kw">const</span> { data } = <span class="kw">await</span> loginUser({ email, password });
+    login(data);       <span class="cm">// stores in context + localStorage</span>
+    navigate(<span class="str">"/"</span>);     <span class="cm">// redirect to dashboard</span>
+  } <span class="kw">catch</span> (err) {
+    setError(err.response?.data?.error?.message || <span class="str">"Login failed"</span>);
+  }
+};
+
+<span class="cm">// Render: centered card with SmartLocker logo, email input, password input, submit button, link to /register</span>
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">10</span> Protected Route Component</h4>
+<span class="file-path new-file">frontend/src/app/components/ProtectedRoute.jsx</span>
+<details>
+<summary>What this file does</summary>
+<div class="detail-content">
+<p>Wraps routes that require login. If no user, redirect to /login.</p>
+<pre class="code"><span class="kw">import</span> { Navigate, Outlet } <span class="kw">from</span> <span class="str">"react-router-dom"</span>;
+<span class="kw">import</span> { useAuth } <span class="kw">from</span> <span class="str">"../../features/auth/useAuth"</span>;
+
+<span class="kw">export default function</span> <span class="fn">ProtectedRoute</span>({ allowedRoles }) {
+  <span class="kw">const</span> { user, loading } = useAuth();
+
+  <span class="kw">if</span> (loading) <span class="kw">return</span> &lt;div&gt;Loading...&lt;/div&gt;;
+  <span class="kw">if</span> (!user) <span class="kw">return</span> &lt;Navigate to=<span class="str">"/login"</span> /&gt;;
+  <span class="kw">if</span> (allowedRoles && !allowedRoles.includes(user.role)) {
+    <span class="kw">return</span> &lt;Navigate to=<span class="str">"/"</span> /&gt;;
+  }
+  <span class="kw">return</span> &lt;Outlet /&gt;;
+}
+</pre>
+</div>
+</details>
+
+<h4><span class="step-num">11</span> Update App.jsx routes</h4>
+<span class="file-path edit-file">frontend/src/app/App.jsx</span>
+<details>
+<summary>What to change</summary>
+<div class="detail-content">
+<pre class="code"><span class="kw">import</span> Login <span class="kw">from</span> <span class="str">"../features/auth/pages/Login"</span>;
+<span class="kw">import</span> Register <span class="kw">from</span> <span class="str">"../features/auth/pages/Register"</span>;
+<span class="kw">import</span> ProtectedRoute <span class="kw">from</span> <span class="str">"./components/ProtectedRoute"</span>;
+<span class="kw">import</span> StaffDashboard <span class="kw">from</span> <span class="str">"../features/staff/pages/StaffDashboard"</span>;
+<span class="kw">import</span> UserManagement <span class="kw">from</span> <span class="str">"../features/users/pages/UserManagement"</span>;
+<span class="kw">import</span> Notifications <span class="kw">from</span> <span class="str">"../features/notifications/Notifications"</span>;
+
+&lt;BrowserRouter&gt;
+  &lt;Routes&gt;
+    <span class="cm">{/* Public routes - no auth needed */}</span>
+    &lt;Route path=<span class="str">"/login"</span> element={&lt;Login /&gt;} /&gt;
+    &lt;Route path=<span class="str">"/register"</span> element={&lt;Register /&gt;} /&gt;
+
+    <span class="cm">{/* Protected routes - login required */}</span>
+    &lt;Route element={&lt;ProtectedRoute /&gt;}&gt;
+      &lt;Route element={&lt;DashboardLayout /&gt;}&gt;
+        &lt;Route path=<span class="str">"/"</span> element={&lt;Dashboard /&gt;} /&gt;
+        &lt;Route path=<span class="str">"/lockers"</span> element={&lt;Lockers /&gt;} /&gt;
+        &lt;Route path=<span class="str">"/rentals"</span> element={&lt;Rentals /&gt;} /&gt;
+        &lt;Route path=<span class="str">"/notifications"</span> element={&lt;Notifications /&gt;} /&gt;
+
+        <span class="cm">{/* Staff + Owner only */}</span>
+        &lt;Route element={&lt;ProtectedRoute allowedRoles={[<span class="str">"STAFF"</span>, <span class="str">"OWNER"</span>]} /&gt;}&gt;
+          &lt;Route path=<span class="str">"/staff"</span> element={&lt;StaffDashboard /&gt;} /&gt;
+        &lt;/Route&gt;
+
+        <span class="cm">{/* Owner only */}</span>
+        &lt;Route element={&lt;ProtectedRoute allowedRoles={[<span class="str">"OWNER"</span>]} /&gt;}&gt;
+          &lt;Route path=<span class="str">"/analytics"</span> element={&lt;Analytics /&gt;} /&gt;
+          &lt;Route path=<span class="str">"/users"</span> element={&lt;UserManagement /&gt;} /&gt;
+        &lt;/Route&gt;
+      &lt;/Route&gt;
+    &lt;/Route&gt;
+  &lt;/Routes&gt;
+&lt;/BrowserRouter&gt;
+</pre>
+</div>
+</details>
+
+<!-- ============================================================ -->
+<!-- FEATURE 3: QR CODES -->
+<!-- ============================================================ -->
+<h2 id="feat-qr">Feature 3: QR Code Generation</h2>
+<p>Each locker gets a QR code. Scanning it opens the app and shows that locker's details.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart LR
+    GEN[Owner creates locker] --> QR[Backend generates QR\nusing 'qrcode' package]
+    QR --> DATA["QR data = URL:\nhttps://app.com/lockers/LOCKER_ID\n?tenant=TENANT_ID"]
+    DATA --> IMG[Returns base64 PNG image]
+    IMG --> SHOW[Frontend displays QR\nin locker detail card]
+    SHOW --> SCAN[Customer scans with\nphone camera]
+    SCAN --> OPEN[Opens app at\n/lockers/LOCKER_ID]
+    OPEN --> RENT[Shows locker details\n+ Rent button]
+</pre>
+</div>
+
+<h3>Backend</h3>
+<span class="file-path new-file">backend/src/services/qr.service.js</span>
+<details>
+<summary>Code structure</summary>
+<div class="detail-content">
+<pre class="code"><span class="kw">const</span> QRCode = require(<span class="str">"qrcode"</span>);
+
+<span class="kw">async function</span> <span class="fn">generateQRCode</span>(lockerId, tenantId) {
+  <span class="cm">// The QR code contains a URL that, when scanned, opens the locker page</span>
+  <span class="kw">const</span> data = JSON.stringify({ lockerId, tenantId });
+  <span class="cm">// Generate base64 PNG image</span>
+  <span class="kw">const</span> qrImage = <span class="kw">await</span> QRCode.toDataURL(data, { width: <span class="num">300</span>, margin: <span class="num">2</span> });
+  <span class="kw">return</span> qrImage; <span class="cm">// "data:image/png;base64,..."</span>
+}
+
+module.exports = { generateQRCode };
+</pre>
+<p>Then in <code>locker.service.js</code>, when a locker is created, call <code>generateQRCode()</code> and store the result in the <code>qrCode</code> field.</p>
+</div>
+</details>
+
+<h3>Frontend</h3>
+<span class="file-path new-file">frontend/src/features/lockers/components/QRCodeDisplay.jsx</span>
+<details>
+<summary>What it does</summary>
+<div class="detail-content">
+<p>Simple component that takes a base64 QR image and renders it. Used inside LockerCard.</p>
+<pre class="code"><span class="cm">// Just render the base64 image from the locker's qrCode field:</span>
+&lt;img src={locker.qrCode} alt={`QR for ${locker.lockerNumber}`} className=<span class="str">"w-32 h-32"</span> /&gt;
+
+<span class="cm">// Add a "Download QR" button that creates a download link</span>
+<span class="cm">// Add a "Print QR" button for staff to print and tape to physical lockers</span>
+</pre>
+</div>
+</details>
+
+<!-- ============================================================ -->
+<!-- FEATURE 4: ACCESS CODES -->
+<!-- ============================================================ -->
+<h2 id="feat-access">Feature 4: Access Code System</h2>
+<p>When a user rents a locker, they generate a 6-digit code to "unlock" it. Code expires after 5 minutes.</p>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    USER[User taps 'Get Access Code'] --> API["POST /api/v1/rentals/:id/access-code"]
+    API --> CHECK{Rental is ACTIVE\nand belongs to user?}
+    CHECK -->|No| ERR[Return 403 error]
+    CHECK -->|Yes| RATE{Generated < 3 codes\nin last 15 min?}
+    RATE -->|No| RATE_ERR[Return 429 Too Many Requests]
+    RATE -->|Yes| GEN["Generate random 6-digit code\nMath.floor(100000 + Math.random() * 900000)"]
+    GEN --> HASH["Hash code with bcrypt\nbcrypt.hash(code, 10)"]
+    HASH --> STORE["Store in Locker:\naccessCode = hashedCode\naccessCodeExpiry = now + 5min"]
+    STORE --> RETURN["Return plain code to user\n(only time it's shown)"]
+    RETURN --> DISPLAY["Frontend shows:\n\n  8 4 7 2 9 1\n  Expires in 4:59"]
+
+    style ERR fill:#f85149,color:#fff
+    style RATE_ERR fill:#f85149,color:#fff
+    style DISPLAY fill:#3fb950,color:#000
+</pre>
+</div>
+
+<h3>Backend</h3>
+<span class="file-path new-file">backend/src/services/accessCode.service.js</span>
+<details>
+<summary>Code structure</summary>
+<div class="detail-content">
+<pre class="code"><span class="kw">const</span> bcrypt = require(<span class="str">"bcryptjs"</span>);
+<span class="kw">const</span> prisma = require(<span class="str">"../config/prisma"</span>);
+<span class="kw">const</span> AppError = require(<span class="str">"../utils/AppError"</span>);
+
+<span class="kw">async function</span> <span class="fn">generateAccessCode</span>({ tenantId, userId, rentalId }) {
+  <span class="cm">// 1. Find rental, verify it's ACTIVE and belongs to userId</span>
+  <span class="cm">// 2. Generate 6-digit code: String(Math.floor(100000 + Math.random() * 900000))</span>
+  <span class="cm">// 3. Hash it: await bcrypt.hash(code, 10)</span>
+  <span class="cm">// 4. Update the locker: accessCode = hashed, accessCodeExpiry = new Date(Date.now() + 5 * 60 * 1000)</span>
+  <span class="cm">// 5. Return the PLAIN code (not hashed) - only time user sees it</span>
+  <span class="cm">// 6. Return { code, expiresAt } where expiresAt is the expiry timestamp</span>
+}
+
+module.exports = { generateAccessCode };
+</pre>
+</div>
+</details>
+
+<p>Add the route to <span class="file-path edit-file">backend/src/routes/rental.routes.js</span>:</p>
+<pre class="code"><span class="cm">// Add this route:</span>
+router.post(<span class="str">"/:id/access-code"</span>, requireAuth, requireTenant, <span class="kw">async</span> (req, res, next) => {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> result = <span class="kw">await</span> accessCodeService.generateAccessCode({
+      tenantId: req.tenantId,
+      userId: req.user.userId,
+      rentalId: req.params.id,
+    });
+    res.json({ message: <span class="str">"Access code generated"</span>, ...result });
+  } <span class="kw">catch</span> (e) { next(e); }
+});
+</pre>
+
+<h3>Frontend</h3>
+<span class="file-path new-file">frontend/src/features/lockers/components/AccessCodeModal.jsx</span>
+<details>
+<summary>What it shows</summary>
+<div class="detail-content">
+<p>Modal that displays the 6-digit code in BIG numbers with a countdown timer.</p>
+<pre class="code"><span class="cm">// Key elements:</span>
+<span class="cm">// - Big 6-digit code displayed with spacing: "8  4  7  2  9  1"</span>
+<span class="cm">// - Countdown timer: "Expires in 4:32"</span>
+<span class="cm">// - "Generate New Code" button (disabled if rate limited)</span>
+<span class="cm">// - Warning text: "This code can only be used once"</span>
+<span class="cm">// - Use useEffect + setInterval to count down every second</span>
+<span class="cm">// - When timer hits 0, show "Code expired" and enable regenerate button</span>
+</pre>
+</div>
+</details>
+
+<!-- ============================================================ -->
+<!-- FEATURE 5: RENTAL EXTENSIONS -->
+<!-- ============================================================ -->
+<h2 id="feat-extend">Feature 5: Rental Extensions</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart LR
+    USER[User taps 'Extend Rental'] --> CHECK{Rental ACTIVE\nand not past max?}
+    CHECK -->|No| ERR[Error: Cannot extend]
+    CHECK -->|Yes| FORM[Select duration\n+1hr, +2hr, +4hr]
+    FORM --> API["POST /api/v1/rentals/:id/extend\n{hours: 2}"]
+    API --> UPDATE["Update rental:\nendTime += hours\nRecalculate cost"]
+    UPDATE --> OK[Extension confirmed!]
+</pre>
+</div>
+
+<h3>Backend</h3>
+<p>Add to <span class="file-path edit-file">backend/src/services/rental.service.js</span>:</p>
+<details>
+<summary>New function to add</summary>
+<div class="detail-content">
+<pre class="code"><span class="kw">async function</span> <span class="fn">extendRental</span>({ tenantId, userId, rentalId, hours }) {
+  <span class="cm">// 1. Find rental, verify ACTIVE + belongs to user</span>
+  <span class="cm">// 2. Check if extension would exceed 48hr max</span>
+  <span class="cm">// 3. Update endTime by adding hours</span>
+  <span class="cm">// 4. Recalculate totalCost (add extension fee)</span>
+  <span class="cm">// 5. Return updated rental</span>
+}
+</pre>
+</div>
+</details>
+
+<p>Add route to <span class="file-path edit-file">backend/src/routes/rental.routes.js</span>:</p>
+<pre class="code">router.post(<span class="str">"/:id/extend"</span>, requireAuth, requireTenant, <span class="kw">async</span> (req, res, next) => { ... });
+</pre>
+
+<h3>Frontend</h3>
+<span class="file-path new-file">frontend/src/features/rentals/components/ExtendRentalModal.jsx</span>
+<p>Modal with duration selector (+1hr, +2hr, +4hr) and cost preview. Calls <code>POST /rentals/:id/extend</code>.</p>
+
+<!-- ============================================================ -->
+<!-- FEATURE 6: MOCK PAYMENTS -->
+<!-- ============================================================ -->
+<h2 id="feat-payment">Feature 6: Mock Payment System</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant API as Payment API
+    participant DB
+
+    User->>Frontend: Confirms rental
+    Frontend->>Frontend: Show PaymentModal
+    User->>Frontend: Selects "mock_card"
+    Frontend->>API: POST /api/v1/payments/process
+    Note right of API: {rentalId, method: "mock_card"}
+
+    API->>API: Calculate amount from locker type
+    API->>API: Simulate 2-second delay
+
+    alt method === "mock_card_fail"
+        API->>DB: Create Payment (status: FAILED)
+        API-->>Frontend: 400 "Payment declined"
+    else Random: 90% success
+        API->>DB: Create Payment (status: SUCCESS)
+        API->>DB: Update rental paymentStatus = COMPLETED
+        API-->>Frontend: 200 {payment}
+    else Random: 10% failure
+        API->>DB: Create Payment (status: FAILED)
+        API-->>Frontend: 400 "Payment failed, try again"
+    end
+</pre>
+</div>
+
+<h3>Backend</h3>
+<span class="file-path new-file">backend/src/services/payment.service.js</span>
+<details>
+<summary>Code structure</summary>
+<div class="detail-content">
+<pre class="code"><span class="kw">const</span> prisma = require(<span class="str">"../config/prisma"</span>);
+
+<span class="kw">const</span> PRICES = { SMALL: <span class="num">5</span>, MEDIUM: <span class="num">8</span>, LARGE: <span class="num">12</span> };
+
+<span class="kw">async function</span> <span class="fn">processPayment</span>({ tenantId, userId, rentalId, method }) {
+  <span class="cm">// 1. Find rental + locker to get price</span>
+  <span class="cm">// 2. Calculate amount from PRICES[locker.type]</span>
+  <span class="cm">// 3. Simulate delay: await new Promise(r => setTimeout(r, 2000))</span>
+  <span class="cm">// 4. Determine success:</span>
+  <span class="cm">//    - "mock_card_fail" → always FAILED</span>
+  <span class="cm">//    - "subscription" → always SUCCESS, amount = 0</span>
+  <span class="cm">//    - others → 90% SUCCESS, 10% FAILED (Math.random() > 0.1)</span>
+  <span class="cm">// 5. Create Payment record in DB</span>
+  <span class="cm">// 6. If SUCCESS, update rental.paymentStatus = "COMPLETED" and rental.totalCost</span>
+  <span class="cm">// 7. Return payment object</span>
+}
+
+module.exports = { processPayment };
+</pre>
+</div>
+</details>
+
+<span class="file-path new-file">backend/src/routes/payment.routes.js</span>
+<pre class="code"><span class="cm">// POST /api/v1/payments/process  →  { rentalId, method }</span>
+<span class="cm">// GET  /api/v1/payments/:rentalId →  get payments for a rental</span>
+</pre>
+
+<p>Register in <span class="file-path edit-file">backend/src/app.js</span>:</p>
+<pre class="code">app.use(<span class="str">"/api/v1/payments"</span>, paymentRoutes);</pre>
+
+<h3>Frontend</h3>
+<span class="file-path new-file">frontend/src/features/rentals/components/PaymentModal.jsx</span>
+<p>Shows payment method buttons (Credit Card, Digital Wallet, Subscription). Shows loading spinner during 2-second processing. Shows success/failure result.</p>
+
+<!-- ============================================================ -->
+<!-- FEATURE 7: NOTIFICATIONS -->
+<!-- ============================================================ -->
+<h2 id="feat-notif">Feature 7: Notification System</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    subgraph "Backend - Creating Notifications"
+        A[Rental Created] -->|Event| CREATE1["notificationService.create({\n  type: 'RENTAL_CONFIRMATION',\n  title: 'Locker Rented!',\n  body: 'Locker A-001 rented until 3pm'\n})"]
+
+        B[Cron: Every 5 min] --> CHECK1{Rentals expiring\nin < 1 hour?}
+        CHECK1 -->|Yes| CREATE2["create({ type: 'EXPIRY_WARNING' })"]
+
+        C[Cron: Every 1 min] --> CHECK2{Rentals past\nendTime?}
+        CHECK2 -->|Yes| CREATE3["create({ type: 'RENTAL_EXPIRED' })"]
+    end
+
+    subgraph "Frontend - Showing Notifications"
+        BELL["Bell icon in Topbar\nShows unread count badge"] --> CLICK[User clicks bell]
+        CLICK --> PANEL["Dropdown panel shows\nrecent notifications"]
+        PANEL --> MARK["Click marks as read"]
+    end
+
+    CREATE1 --> DB[(Notifications table)]
+    CREATE2 --> DB
+    CREATE3 --> DB
+    DB --> POLL["Frontend polls\nGET /api/v1/notifications\nevery 30 seconds"]
+    POLL --> BELL
+</pre>
+</div>
+
+<h3>Backend</h3>
+<span class="file-path new-file">backend/src/services/notification.service.js</span>
+<details>
+<summary>Code structure</summary>
+<div class="detail-content">
+<pre class="code"><span class="kw">const</span> prisma = require(<span class="str">"../config/prisma"</span>);
+
+<span class="kw">async function</span> <span class="fn">create</span>({ tenantId, userId, type, title, body }) {
+  <span class="kw">return</span> prisma.notification.create({
+    data: { tenantId, userId, type, title, body },
+  });
+}
+
+<span class="kw">async function</span> <span class="fn">getUserNotifications</span>({ tenantId, userId }) {
+  <span class="kw">return</span> prisma.notification.findMany({
+    where: { tenantId, userId },
+    orderBy: { createdAt: <span class="str">"desc"</span> },
+    take: <span class="num">20</span>,
+  });
+}
+
+<span class="kw">async function</span> <span class="fn">markAsRead</span>({ tenantId, userId, notificationId }) {
+  <span class="kw">return</span> prisma.notification.updateMany({
+    where: { id: notificationId, tenantId, userId },
+    data: { read: <span class="kw">true</span> },
+  });
+}
+
+<span class="kw">async function</span> <span class="fn">getUnreadCount</span>({ tenantId, userId }) {
+  <span class="kw">return</span> prisma.notification.count({
+    where: { tenantId, userId, read: <span class="kw">false</span> },
+  });
+}
+
+module.exports = { create, getUserNotifications, markAsRead, getUnreadCount };
+</pre>
+</div>
+</details>
+
+<span class="file-path new-file">backend/src/routes/notification.routes.js</span>
+<pre class="code"><span class="cm">// GET  /api/v1/notifications        →  get user's notifications</span>
+<span class="cm">// GET  /api/v1/notifications/unread  →  get unread count</span>
+<span class="cm">// PATCH /api/v1/notifications/:id/read  →  mark as read</span>
+</pre>
+
+<h4>Cron Jobs (Background Tasks)</h4>
+<span class="file-path new-file">backend/src/jobs/expiryChecker.js</span>
+<details>
+<summary>Code structure</summary>
+<div class="detail-content">
+<pre class="code"><span class="kw">const</span> cron = require(<span class="str">"node-cron"</span>);
+<span class="kw">const</span> prisma = require(<span class="str">"../config/prisma"</span>);
+<span class="kw">const</span> notificationService = require(<span class="str">"../services/notification.service"</span>);
+
+<span class="kw">function</span> <span class="fn">startExpiryChecker</span>() {
+  <span class="cm">// Every 5 minutes: check for rentals expiring within 1 hour</span>
+  cron.schedule(<span class="str">"*/5 * * * *"</span>, <span class="kw">async</span> () => {
+    <span class="kw">const</span> soon = <span class="kw">new</span> Date(Date.now() + <span class="num">60</span> * <span class="num">60</span> * <span class="num">1000</span>); <span class="cm">// 1 hour from now</span>
+    <span class="kw">const</span> expiring = <span class="kw">await</span> prisma.rental.findMany({
+      where: { status: <span class="str">"ACTIVE"</span>, endTime: { lte: soon, gt: <span class="kw">new</span> Date() } },
+      include: { locker: <span class="kw">true</span> },
+    });
+    <span class="kw">for</span> (<span class="kw">const</span> rental <span class="kw">of</span> expiring) {
+      <span class="kw">await</span> notificationService.create({
+        tenantId: rental.tenantId,
+        userId: rental.userId,
+        type: <span class="str">"EXPIRY_WARNING"</span>,
+        title: <span class="str">"Rental Expiring Soon"</span>,
+        body: `Your rental for locker ${rental.locker.lockerNumber} expires soon.`,
+      });
+    }
+  });
+
+  <span class="cm">// Every minute: check for expired rentals, auto-complete them</span>
+  cron.schedule(<span class="str">"* * * * *"</span>, <span class="kw">async</span> () => {
+    <span class="kw">const</span> expired = <span class="kw">await</span> prisma.rental.findMany({
+      where: { status: <span class="str">"ACTIVE"</span>, endTime: { lte: <span class="kw">new</span> Date() } },
+    });
+    <span class="kw">for</span> (<span class="kw">const</span> rental <span class="kw">of</span> expired) {
+      <span class="cm">// Force complete the rental and free up the locker</span>
+      <span class="kw">await</span> prisma.$transaction([
+        prisma.rental.update({ where: { id: rental.id }, data: { status: <span class="str">"COMPLETED"</span> } }),
+        prisma.locker.updateMany({ where: { id: rental.lockerId }, data: { status: <span class="str">"AVAILABLE"</span> } }),
+      ]);
+      <span class="kw">await</span> notificationService.create({
+        tenantId: rental.tenantId, userId: rental.userId,
+        type: <span class="str">"RENTAL_EXPIRED"</span>, title: <span class="str">"Rental Expired"</span>,
+        body: <span class="str">"Your rental has expired and the locker has been freed."</span>,
+      });
+    }
+  });
+}
+
+module.exports = { startExpiryChecker };
+</pre>
+
+<p>Start it in <span class="file-path edit-file">backend/server.js</span>:</p>
+<pre class="code"><span class="kw">const</span> { startExpiryChecker } = require(<span class="str">"./src/jobs/expiryChecker"</span>);
+<span class="cm">// After app.listen():</span>
+startExpiryChecker();
+console.log(<span class="str">"Expiry checker cron jobs started"</span>);
+</pre>
+</div>
+</details>
+
+<h3>Frontend</h3>
+<span class="file-path new-file">frontend/src/features/notifications/NotificationBell.jsx</span>
+<details>
+<summary>What it does</summary>
+<div class="detail-content">
+<p>Bell icon in the Topbar. Shows red badge with unread count. Clicking opens a dropdown with recent notifications. Polls every 30 seconds.</p>
+<pre class="code"><span class="cm">// Use useEffect + setInterval to poll GET /api/v1/notifications/unread every 30s</span>
+<span class="cm">// Render: Bell icon from lucide-react + red circle badge if count > 0</span>
+<span class="cm">// On click: toggle dropdown showing notification list</span>
+<span class="cm">// Each notification: icon + title + time ago + click to mark as read</span>
+</pre>
+</div>
+</details>
+
+<p>Add <code>NotificationBell</code> to <span class="file-path edit-file">frontend/src/app/layout/Topbar.jsx</span> next to the user info.</p>
+
+<!-- ============================================================ -->
+<!-- FEATURE 8: STAFF FEATURES -->
+<!-- ============================================================ -->
+<h2 id="feat-staff">Feature 8: Staff Management Dashboard</h2>
+
+<div class="diagram-box">
+<pre class="mermaid">
+flowchart TD
+    STAFF([Staff logs into dashboard]) --> TABS[Staff Dashboard has 3 tabs]
+
+    TABS --> T1[All Lockers Tab]
+    TABS --> T2[Overdue Rentals Tab]
+    TABS --> T3[User Approvals Tab]
+
+    T1 --> GRID[Shows ALL lockers\nwith real-time status]
+    GRID --> ACT1["Override: Change status\n(Available/Maintenance/Occupied)"]
+    GRID --> ACT2["Force End: End any\nactive rental"]
+    GRID --> ACT3["Assign: Assign locker\nto specific user"]
+
+    T2 --> LIST[Shows rentals past endTime]
+    LIST --> ACT4[Contact User\nSend notification]
+    LIST --> ACT5[Force End Rental]
+
+    T3 --> PENDING[Users pending approval]
+    PENDING --> ACT6[Approve - set role]
+    PENDING --> ACT7[Deny - remove access]
+
+    style T1 fill:#58a6ff,color:#000
+    style T2 fill:#f85149,color:#fff
+    style T3 fill:#d29922,color:#000
+</pre>
+</div>
+
+<h3>Backend</h3>
+
+<span class="file-path new-file">backend/src/routes/user.routes.js</span>
+<details>
+<summary>Endpoints needed</summary>
+<div class="detail-content">
+<pre class="code"><span class="cm">// All routes require requireAuth + requireTenant + requireRole("STAFF", "OWNER")</span>
+
+<span class="cm">// GET  /api/v1/users              →  List all users for this tenant</span>
+<span class="cm">// PATCH /api/v1/users/:id/role    →  Change user role { role: "STAFF" }</span>
+<span class="cm">// GET  /api/v1/users/pending      →  Users awaiting approval</span>
+<span class="cm">// POST /api/v1/users/:id/approve  →  Approve a user</span>
+<span class="cm">// POST /api/v1/users/:id/deny     →  Deny a user</span>
+</pre>
+</div>
+</details>
+
+<p>Also add a staff override route to <span class="file-path edit-file">backend/src/routes/locker.routes.js</span>:</p>
+<pre class="code"><span class="cm">// POST /api/v1/lockers/:id/override  →  Staff force-change locker status</span>
+<span class="cm">// Body: { status: "MAINTENANCE" | "AVAILABLE" }</span>
+<span class="cm">// Requires: requireRole("STAFF", "OWNER")</span>
+<span class="cm">// If locker is OCCUPIED, also force-complete the active rental</span>
+</pre>
+
+<h3>Frontend</h3>
+<span class="file-path new-file">frontend/src/features/staff/pages/StaffDashboard.jsx</span>
+<details>
+<summary>What it contains</summary>
+<div class="detail-content">
+<p>Page with 3 tabs. Each tab has a table/list. Use the same Tailwind patterns from the existing pages.</p>
+<pre class="code"><span class="cm">// Tab 1: All Lockers - reuse LockerGrid but with staff action buttons</span>
+<span class="cm">// Tab 2: Overdue Rentals - fetch rentals where status=ACTIVE and endTime < now</span>
+<span class="cm">// Tab 3: User Management - list users with role badges and approve/deny buttons</span>
+
+<span class="cm">// Use useState for active tab. Use Tailwind tabs pattern:</span>
+<span class="cm">// &lt;button className={activeTab === 'lockers' ? 'border-b-2 border-indigo-500' : ''}&gt;</span>
+</pre>
+</div>
+</details>
+
+<span class="file-path new-file">frontend/src/features/staff/components/OverrideModal.jsx</span>
+<p>Modal for staff to change a locker's status. Dropdown with Available/Maintenance/Out of Service. Confirm button.</p>
+
+<span class="file-path new-file">frontend/src/features/staff/staff.api.js</span>
+<pre class="code"><span class="kw">import</span> api <span class="kw">from</span> <span class="str">"../../lib/axios"</span>;
+
+<span class="kw">export const</span> overrideLocker = (id, data) => api.post(`/lockers/${id}/override`, data);
+<span class="kw">export const</span> getOverdueRentals = () => api.get(<span class="str">"/rentals?status=OVERDUE"</span>);
+<span class="kw">export const</span> forceEndRental = (id) => api.post(`/rentals/${id}/complete`);
+</pre>
+
+<p>Update <span class="file-path edit-file">frontend/src/app/layout/Sidebar.jsx</span> &mdash; add Staff and Users nav items:</p>
+<pre class="code"><span class="cm">// Add to the navigation array:</span>
+{ name: <span class="str">"Staff"</span>, path: <span class="str">"/staff"</span>, icon: Shield, roles: [<span class="str">"STAFF"</span>, <span class="str">"OWNER"</span>] },
+{ name: <span class="str">"Users"</span>, path: <span class="str">"/users"</span>, icon: Users, roles: [<span class="str">"OWNER"</span>] },
+
+<span class="cm">// Import from lucide-react: Shield, Users</span>
+</pre>
+
+<!-- ============================================================ -->
+<!-- FEATURE 9: TOAST NOTIFICATIONS -->
+<!-- ============================================================ -->
+<h2 id="feat-toast">Feature 9: Toast Notifications (UI Feedback)</h2>
+<p>Quick win &mdash; show success/error popups when actions happen.</p>
+
+<h3>Setup (2 minutes)</h3>
+<span class="file-path edit-file">frontend/src/main.jsx</span>
+<pre class="code"><span class="kw">import</span> { Toaster } <span class="kw">from</span> <span class="str">"react-hot-toast"</span>;
+
+<span class="cm">// Add inside the root render, alongside AuthProvider:</span>
+&lt;AuthProvider&gt;
+  &lt;App /&gt;
+  &lt;Toaster position=<span class="str">"top-right"</span> /&gt;
+&lt;/AuthProvider&gt;
+</pre>
+
+<h3>Usage (everywhere)</h3>
+<pre class="code"><span class="kw">import</span> toast <span class="kw">from</span> <span class="str">"react-hot-toast"</span>;
+
+<span class="cm">// After successful rental:</span>
+toast.success(<span class="str">"Locker rented successfully!"</span>);
+
+<span class="cm">// After error:</span>
+toast.error(<span class="str">"Failed to rent locker. Try again."</span>);
+
+<span class="cm">// After ending rental:</span>
+toast.success(<span class="str">"Rental ended. Locker is now available."</span>);
+</pre>
+
+<!-- ============================================================ -->
+<!-- SUMMARY OF ALL FILES -->
+<!-- ============================================================ -->
+<h2 id="summary">Complete File Summary</h2>
+
+<h3>New Backend Files (13 files)</h3>
+<table>
+  <tr><th>#</th><th>File Path</th><th>Purpose</th></tr>
+  <tr><td>1</td><td><code>src/services/auth.service.js</code></td><td>Register, login, JWT token generation</td></tr>
+  <tr><td>2</td><td><code>src/services/accessCode.service.js</code></td><td>Generate 6-digit access codes</td></tr>
+  <tr><td>3</td><td><code>src/services/qr.service.js</code></td><td>Generate QR code images</td></tr>
+  <tr><td>4</td><td><code>src/services/payment.service.js</code></td><td>Mock payment processing</td></tr>
+  <tr><td>5</td><td><code>src/services/notification.service.js</code></td><td>Create/read/mark notifications</td></tr>
+  <tr><td>6</td><td><code>src/services/user.service.js</code></td><td>User CRUD, role management</td></tr>
+  <tr><td>7</td><td><code>src/routes/auth.routes.js</code></td><td>/auth/register, /auth/login, /auth/refresh</td></tr>
+  <tr><td>8</td><td><code>src/routes/payment.routes.js</code></td><td>/payments/process</td></tr>
+  <tr><td>9</td><td><code>src/routes/notification.routes.js</code></td><td>/notifications, /notifications/:id/read</td></tr>
+  <tr><td>10</td><td><code>src/routes/user.routes.js</code></td><td>/users, /users/:id/role, /users/:id/approve</td></tr>
+  <tr><td>11</td><td><code>src/validators/auth.validator.js</code></td><td>Zod schemas for auth requests</td></tr>
+  <tr><td>12</td><td><code>src/middleware/rbac.js</code></td><td>Role-based access control middleware</td></tr>
+  <tr><td>13</td><td><code>src/jobs/expiryChecker.js</code></td><td>Cron jobs for expiry warnings</td></tr>
+</table>
+
+<h3>Edited Backend Files (5 files)</h3>
+<table>
+  <tr><th>#</th><th>File Path</th><th>What Changes</th></tr>
+  <tr><td>1</td><td><code>prisma/schema.prisma</code></td><td>Add User, Payment, Notification models + new fields</td></tr>
+  <tr><td>2</td><td><code>src/app.js</code></td><td>Register auth, payment, notification, user routes</td></tr>
+  <tr><td>3</td><td><code>src/middleware/clerkTenant.js</code></td><td>Replace stubs with real JWT verification</td></tr>
+  <tr><td>4</td><td><code>src/services/rental.service.js</code></td><td>Add extendRental function</td></tr>
+  <tr><td>5</td><td><code>src/routes/rental.routes.js</code></td><td>Add /extend and /access-code routes</td></tr>
+</table>
+
+<h3>New Frontend Files (11 files)</h3>
+<table>
+  <tr><th>#</th><th>File Path</th><th>Purpose</th></tr>
+  <tr><td>1</td><td><code>src/app/components/ProtectedRoute.jsx</code></td><td>Route guard - redirect to login if not authed</td></tr>
+  <tr><td>2</td><td><code>src/features/lockers/components/QRCodeDisplay.jsx</code></td><td>Render QR code image for a locker</td></tr>
+  <tr><td>3</td><td><code>src/features/lockers/components/AccessCodeModal.jsx</code></td><td>Show 6-digit code with countdown timer</td></tr>
+  <tr><td>4</td><td><code>src/features/rentals/components/ExtendRentalModal.jsx</code></td><td>Duration picker for extending rental</td></tr>
+  <tr><td>5</td><td><code>src/features/rentals/components/PaymentModal.jsx</code></td><td>Payment method selection + processing</td></tr>
+  <tr><td>6</td><td><code>src/features/notifications/Notifications.jsx</code></td><td>Full notifications page</td></tr>
+  <tr><td>7</td><td><code>src/features/notifications/notifications.api.js</code></td><td>API calls for notifications</td></tr>
+  <tr><td>8</td><td><code>src/features/notifications/NotificationBell.jsx</code></td><td>Bell icon + dropdown in Topbar</td></tr>
+  <tr><td>9</td><td><code>src/features/staff/pages/StaffDashboard.jsx</code></td><td>Staff operations: overrides, overdue, approvals</td></tr>
+  <tr><td>10</td><td><code>src/features/staff/staff.api.js</code></td><td>API calls for staff actions</td></tr>
+  <tr><td>11</td><td><code>src/features/users/pages/UserManagement.jsx</code></td><td>Owner: manage users and roles</td></tr>
+</table>
+
+<h3>Edited Frontend Files (7 files)</h3>
+<table>
+  <tr><th>#</th><th>File Path</th><th>What Changes</th></tr>
+  <tr><td>1</td><td><code>src/features/auth/AuthContext.jsx</code></td><td>Real auth state from localStorage/JWT</td></tr>
+  <tr><td>2</td><td><code>src/features/auth/auth.api.js</code></td><td>Add register, login, refresh API calls</td></tr>
+  <tr><td>3</td><td><code>src/features/auth/pages/Login.jsx</code></td><td>Wire up real login form</td></tr>
+  <tr><td>4</td><td><code>src/features/auth/pages/Register.jsx</code></td><td>Wire up real register form</td></tr>
+  <tr><td>5</td><td><code>src/app/App.jsx</code></td><td>Add new routes + ProtectedRoute wrapper</td></tr>
+  <tr><td>6</td><td><code>src/app/layout/Sidebar.jsx</code></td><td>Add Staff + Users nav items</td></tr>
+  <tr><td>7</td><td><code>src/app/layout/Topbar.jsx</code></td><td>Add NotificationBell component</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="patterns">Patterns to Follow</h2>
+<div class="alert alert-blue">
+  <strong>IMPORTANT:</strong> All new code should follow the EXACT same patterns already in the codebase. Here's a cheat sheet:
+</div>
+
+<div class="cols">
+  <div class="card">
+    <h4>Backend Pattern: Service</h4>
+    <pre class="code"><span class="cm">// Every service file looks like this:</span>
+<span class="kw">const</span> prisma = require(<span class="str">"../config/prisma"</span>);
+<span class="kw">const</span> AppError = require(<span class="str">"../utils/AppError"</span>);
+
+<span class="kw">async function</span> <span class="fn">doThing</span>({ tenantId, ... }) {
+  <span class="cm">// Always filter by tenantId!</span>
+  <span class="kw">return</span> prisma.model.findMany({
+    where: { tenantId, ... },
+  });
+}
+
+module.exports = { doThing };
+</pre>
+  </div>
+  <div class="card">
+    <h4>Backend Pattern: Route</h4>
+    <pre class="code"><span class="cm">// Every route file looks like this:</span>
+<span class="kw">const</span> express = require(<span class="str">"express"</span>);
+<span class="kw">const</span> { requireAuth, requireTenant }
+  = require(<span class="str">"../middleware/clerkTenant"</span>);
+<span class="kw">const</span> router = express.Router();
+
+router.get(<span class="str">"/"</span>, requireAuth, requireTenant,
+  <span class="kw">async</span> (req, res, next) => {
+    <span class="kw">try</span> {
+      <span class="kw">const</span> data = <span class="kw">await</span> service.fn({
+        tenantId: req.tenantId,
+        userId: req.user.userId,
+      });
+      res.json({ message: <span class="str">"OK"</span>, data });
+    } <span class="kw">catch</span> (e) { next(e); }
+});
+
+module.exports = router;
+</pre>
+  </div>
+  <div class="card">
+    <h4>Frontend Pattern: API file</h4>
+    <pre class="code"><span class="cm">// Every .api.js file:</span>
+<span class="kw">import</span> api <span class="kw">from</span> <span class="str">"../../lib/axios"</span>;
+
+<span class="kw">export const</span> <span class="fn">getThings</span> = () =>
+  api.get(<span class="str">"/things"</span>);
+
+<span class="kw">export const</span> <span class="fn">createThing</span> = (data) =>
+  api.post(<span class="str">"/things"</span>, data);
+</pre>
+  </div>
+  <div class="card">
+    <h4>Frontend Pattern: Page</h4>
+    <pre class="code"><span class="cm">// Every page component:</span>
+<span class="kw">import</span> { useState, useEffect } <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> { getThings } <span class="kw">from</span> <span class="str">"./things.api"</span>;
+
+<span class="kw">export default function</span> <span class="fn">Things</span>() {
+  <span class="kw">const</span> [data, setData] = useState([]);
+  <span class="kw">const</span> [loading, setLoading] = useState(<span class="kw">true</span>);
+
+  useEffect(() => {
+    getThings().then(res => {
+      setData(res.data.data);
+      setLoading(<span class="kw">false</span>);
+    });
+  }, []);
+
+  <span class="kw">if</span> (loading) <span class="kw">return</span> &lt;p&gt;Loading...&lt;/p&gt;;
+  <span class="kw">return</span> (<span class="cm">/* Tailwind UI */</span>);
+}
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="work-split">Suggested Team Work Split</h2>
+<div class="alert alert-yellow">
+  <strong>4 team members, 4 days.</strong> Here's how to divide the work so nobody blocks each other:
+</div>
+
+<table>
+  <tr><th>Person</th><th>Focus Area</th><th>Files They Own</th><th>Days</th></tr>
+  <tr>
+    <td><strong>Person A</strong></td>
+    <td>Auth + RBAC<br>(Most critical)</td>
+    <td>
+      <code>auth.service.js</code>, <code>auth.routes.js</code>, <code>auth.validator.js</code>,
+      <code>clerkTenant.js</code>, <code>rbac.js</code>,
+      <code>AuthContext.jsx</code>, <code>Login.jsx</code>, <code>Register.jsx</code>,
+      <code>ProtectedRoute.jsx</code>, <code>schema.prisma</code> (User model)
+    </td>
+    <td>Day 1-2</td>
+  </tr>
+  <tr>
+    <td><strong>Person B</strong></td>
+    <td>QR + Access Codes + Payments</td>
+    <td>
+      <code>qr.service.js</code>, <code>accessCode.service.js</code>, <code>payment.service.js</code>,
+      <code>payment.routes.js</code>,
+      <code>QRCodeDisplay.jsx</code>, <code>AccessCodeModal.jsx</code>, <code>PaymentModal.jsx</code>,
+      <code>schema.prisma</code> (Payment model)
+    </td>
+    <td>Day 1-2</td>
+  </tr>
+  <tr>
+    <td><strong>Person C</strong></td>
+    <td>Notifications + Cron Jobs</td>
+    <td>
+      <code>notification.service.js</code>, <code>notification.routes.js</code>,
+      <code>expiryChecker.js</code>,
+      <code>NotificationBell.jsx</code>, <code>Notifications.jsx</code>, <code>notifications.api.js</code>,
+      <code>schema.prisma</code> (Notification model)
+    </td>
+    <td>Day 1-2</td>
+  </tr>
+  <tr>
+    <td><strong>Person D</strong></td>
+    <td>Staff Dashboard + User Mgmt + Rentals</td>
+    <td>
+      <code>user.service.js</code>, <code>user.routes.js</code>,
+      <code>StaffDashboard.jsx</code>, <code>OverrideModal.jsx</code>, <code>staff.api.js</code>,
+      <code>UserManagement.jsx</code>, <code>ExtendRentalModal.jsx</code>,
+      rental.service.js (extendRental)
+    </td>
+    <td>Day 1-2</td>
+  </tr>
+  <tr>
+    <td><strong>Everyone</strong></td>
+    <td>Day 3-4: Integration + Polish</td>
+    <td>
+      Wire everything together, add toasts, fix bugs,
+      update <code>App.jsx</code>, <code>Sidebar.jsx</code>, <code>Topbar.jsx</code>,
+      update seed script, test all flows end-to-end
+    </td>
+    <td>Day 3-4</td>
+  </tr>
+</table>
+
+<div class="alert alert-green">
+  <strong>GOLDEN RULE:</strong> Do the schema migration FIRST (Person A). Everyone else depends on the User, Payment, and Notification tables existing. Coordinate on Discord before anyone runs <code>prisma migrate dev</code>.
+</div>
+
+<br><br>
+<p style="color: var(--muted); text-align: center;">Last updated: April 1, 2026 | Let's ship this by Sunday</p>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    sequence: { useMaxWidth: true }
+  });
+</script>
+
+</body>
+</html>

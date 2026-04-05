@@ -1,62 +1,48 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { SignedIn, SignedOut, RedirectToSignIn, useUser } from "@clerk/clerk-react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from "./pages/Home";
 import DashboardLayout from "./layout/DashboardLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
+import Login from "../features/auth/pages/Login";
+import Register from "../features/auth/pages/Register";
+import Dashboard from "../features/dashboard/Dashboard";
 import Lockers from "../features/lockers/pages/Lockers";
 import Rentals from "../features/rentals/pages/Rentals";
+import Notifications from "../features/notifications/Notifications";
 import Analytics from "../features/analytics/Analytics";
-
-import { SignInPage, SignUpPage } from "./pages/Auth";
-
-function RequireOwner({ children }) {
-  const { user, isLoaded } = useUser();
-
-  if (!isLoaded) return null;
-
-  const role = (user?.publicMetadata?.role || "USER").toString().toUpperCase();
-
-  if (role !== "OWNER") {
-    return <Navigate to="/lockers" replace />;
-  }
-
-  return children;
-}
+import StaffDashboard from "../features/staff/pages/StaffDashboard";
+import UserManagement from "../features/users/pages/UserManagement";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/sign-in/*" element={<SignInPage />} />
-        <Route path="/sign-up/*" element={<SignUpPage />} />
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        <Route
-          element={
-            <>
-              <SignedIn>
-                <DashboardLayout />
-              </SignedIn>
-              <SignedOut>
-                <RedirectToSignIn />
-              </SignedOut>
-            </>
-          }
-        >
-          <Route path="/lockers" element={<Lockers />} />
-          <Route path="/rentals" element={<Rentals />} />
-          <Route
-            path="/analytics"
-            element={
-              <RequireOwner>
-                <Analytics />
-              </RequireOwner>
-            }
-          />
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/lockers" element={<Lockers />} />
+            <Route path="/rentals" element={<Rentals />} />
+            <Route path="/notifications" element={<Notifications />} />
+
+            {/* Staff + Owner */}
+            <Route
+              element={<ProtectedRoute allowedRoles={["STAFF", "OWNER"]} />}
+            >
+              <Route path="/staff" element={<StaffDashboard />} />
+            </Route>
+
+            {/* Owner only */}
+            <Route element={<ProtectedRoute allowedRoles={["OWNER"]} />}>
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/users" element={<UserManagement />} />
+            </Route>
+          </Route>
         </Route>
-
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

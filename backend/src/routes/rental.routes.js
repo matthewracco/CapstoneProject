@@ -1,75 +1,87 @@
 const express = require("express");
+const { requireAuth, requireTenant } = require("../middleware/clerkTenant");
 const validate = require("../middleware/validate");
 const { createRentalSchema, rentalQuerySchema } = require("../validators/rental.validator");
 const rentalService = require("../services/rental.service");
+const accessCodeService = require("../services/accessCode.service");
+const { requireRole } = require("../middleware/rbac");
 
 const router = express.Router();
-router.post("/", validate(createRentalSchema), async (req, res, next) => {
+
+router.post("/", requireAuth, requireTenant, validate(createRentalSchema), async (req, res, next) => {
   try {
     const rental = await rentalService.createRental({
       tenantId: req.tenantId,
-      userId: req.user.userId, 
+      userId: req.user.userId,
       lockerId: req.body.lockerId,
     });
-
-    res.status(201).json({ success: true, data: rental });
+    res.status(201).json({ message: "Rental created successfully", rental });
   } catch (e) {
     next(e);
   }
 });
-router.get("/", validate(rentalQuerySchema, "query"), async (req, res, next) => {
+
+router.get("/", requireAuth, requireTenant, validate(rentalQuerySchema, "query"), async (req, res, next) => {
   try {
+    const isStaffOrOwner = ["STAFF", "OWNER"].includes(req.user.role);
     const rentals = await rentalService.getUserRentals({
       tenantId: req.tenantId,
-      userId: req.user.userId,
-      status: req.query.status,
+      userId: isStaffOrOwner ? undefined : req.user.userId,
+      ...(req.query.status ? { status: req.query.status } : {}),
     });
-
-    res.status(200).json({ success: true, data: rentals, meta: { count: rentals.length } });
+    res.status(200).json({ message: "Rentals retrieved", count: rentals.length, rentals });
   } catch (e) {
     next(e);
   }
 });
 
-router.post("/seed-demo", async (req, res, next) => {
-  try {
-    const now = new Date();
-
-    const demo = await Rental.create([
-      {
-        rentalCode: "R-1001",
-        status: "ACTIVE",
-        paymentStatus: "PAID",
-        totalCost: 25,
-        startTime: now,
-        userId: req.user?.id,
-      },
-      {
-        rentalCode: "R-1002",
-        status: "ENDED",
-        paymentStatus: "PAID",
-        totalCost: 40,
-        startTime: new Date(now.getTime() - 60 * 60 * 1000),
-        endTime: now,
-        userId: req.user?.id,
-      },
-    ]);
-
-    res.json({ ok: true, data: demo });
-  } catch (e) {
-    next(e);
-  }
-});
-
-router.post("/:id/complete", async (req, res, next) => {
+router.post("/:id/complete", requireAuth, requireTenant, async (req, res, next) => {
   try {
     const rental = await rentalService.completeRental({
       tenantId: req.tenantId,
       userId: req.user.userId,
       rentalId: req.params.id,
     });
+    res.status(200).json({ message: "Rental completed successfully", rental });
+  } catch (e) {
+    next(e);
+  }
+});
 
-    res.status(200).json({ success: true, data: rental });
+router.post("/:id/extend", requireAuth, requireTenant, async (req, res, next) => {
+  try {
+    const rental = await rentalService.extendRental({
+      tenantId: req.tenantId,
+      userId: req.user.userId,
+      rentalId: req.params.id,
+      hours: req.body.hours,
+    });
+    res.status(200).json({ message: "Rental extended successfully", rental });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/:id/force-complete", requireAuth, requireTenant, requireRole("STAFF", "OWNER"), async (req, res, next) => {
+  try {
+    const rental = await rentalService.forceCompleteRental({
+      tenantId: req.tenantId,
+      rentalId: req.params.id,
+    });
+    res.status(200).json({ message: "Rental force-completed", rental });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/:id/access-code", requireAuth, requireTenant, async (req, res, next) => {
+  try {
+    const { code, expiresAt } = await accessCodeService.generateAccessCode({
+      tenantId: req.tenantId,
+      userId: req.user.userId,
+      rentalId: req.params.id,
+    });
+    res.status(200).json({ message: "Access code generated", code, expiresAt });
   } catch (e) {
     next(e);
   }

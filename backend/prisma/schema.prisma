@@ -1,103 +1,110 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  // output   = "../generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String
+  email        String
+  passwordHash String
+  name         String
+  role         String    @default("CUSTOMER") // CUSTOMER | STAFF | OWNER
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
 
-enum LockerStatus {
-  AVAILABLE
-  OCCUPIED
-  MAINTENANCE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, email])
+  @@index([tenantId, role])
 }
-
-enum LockerType {
-  SMALL
-  MEDIUM
-  LARGE
-}
-
-enum LockerTier {
-  STANDARD
-  PREMIUM  
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-}
-
-enum RentalStatus {
-  ACTIVE
-  COMPLETED
-  CANCELLED
-}
-
 
 model Locker {
-  id          String    @id @default(cuid())
-  tenantId    String
-  location    String
-  lockerNumber    String
+  id           String   @id @default(cuid())
+  tenantId     String
+  location     String
+  lockerNumber String
 
-  status          LockerStatus  @default(AVAILABLE)
-  qrCode          String?
-  accessCode      String?
-  type            LockerType      @default(MEDIUM)
-  tier            LockerTier      @default(STANDARD)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  // AVAILABLE | OCCUPIED | MAINTENANCE | ASSIGNED
+  status     String @default("AVAILABLE")
+  qrCode     String?
+  accessCode String?
+  accessCodeExpiry DateTime?
+  // SMALL | MEDIUM | LARGE
+  type String @default("MEDIUM")
+  // STANDARD | PREMIUM
+  tier String @default("STANDARD")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   rentals Rental[]
 
-
   @@unique([tenantId, lockerNumber])
-  @@unique([tenantId, qrCode])
   @@index([tenantId, status])
   @@index([tenantId, location])
 }
 
 model Rental {
-  id            String        @id @default(cuid())
-  tenantId      String
-  userId        String
-  lockerId      String
-  startTime     DateTime      @default(now())
-  endTime       DateTime?
+  id       String @id @default(cuid())
+  tenantId String
+  userId   String
+  lockerId String
 
-  status        RentalStatus  @default(ACTIVE)
-  rentalCode    String        @unique
-  totalCost     Float         @default(0)
-  paymentStatus PaymentStatus @default(PENDING)
+  startTime  DateTime  @default(now())
+  endTime    DateTime?
+  maxEndTime DateTime? // 48hr cap from start
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  // ACTIVE | COMPLETED | CANCELLED | OVERDUE
+  status String @default("ACTIVE")
 
-  locker        Locker        @relation(fields: [lockerId], references: [id])
-  user          User          @relation(fields: [userId], references: [id])
+  rentalCode    String @unique
+  totalCost     Float  @default(0)
+  // PENDING | COMPLETED | FAILED
+  paymentStatus String @default("PENDING")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locker   Locker    @relation(fields: [lockerId], references: [id])
+  payments Payment[]
+
   @@index([tenantId, userId])
   @@index([tenantId, status])
 }
 
-model User {
-  id           String   @id @default(cuid())
-  clerkUserId  String   @unique
-  role         String   @default("USER")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model Payment {
+  id       String @id @default(cuid())
+  tenantId String
+  rentalId String
+  userId   String
+  amount   Float
+  method   String @default("mock_card") // mock_card | mock_card_fail | mock_wallet | subscription
+  status   String @default("PENDING")   // PENDING | SUCCESS | FAILED
 
-  rentals      Rental[]
+  createdAt DateTime @default(now())
 
+  rental Rental @relation(fields: [rentalId], references: [id])
+
+  @@index([tenantId, userId])
+}
+
+model Notification {
+  id       String  @id @default(cuid())
+  tenantId String
+  userId   String
+  type     String  // RENTAL_CONFIRMATION | EXPIRY_WARNING | RENTAL_EXPIRED | RENTAL_OVERDUE | APPROVAL_GRANTED | LOCKER_ASSIGNED
+  title    String
+  body     String
+  read     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, userId])
+  @@index([tenantId, userId, read])
 }
