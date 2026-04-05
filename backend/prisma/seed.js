@@ -19,9 +19,11 @@ async function main() {
 
   await prisma.locker.createMany({
     data: [
-      { tenantId, location: "Toronto", lockerNumber: "A-101", status: "AVAILABLE", type: "SMALL", tier: "STANDARD" },
+      { tenantId, location: "MONTREAL", lockerNumber: "A-101", status: "AVAILABLE", type: "SMALL", tier: "STANDARD" },
       { tenantId, location: "Toronto", lockerNumber: "A-102", status: "AVAILABLE", type: "MEDIUM", tier: "PREMIUM" },
       { tenantId, location: "North York", lockerNumber: "B-201", status: "MAINTENANCE", type: "LARGE", tier: "STANDARD" },
+      { tenantId, location: "somewhere", lockerNumber: "B-400", status: "AVAILABLE", type: "SMALL", tier: "STANDARD" },
+
     ],
   });
 

@@ -31,6 +31,36 @@ router.get("/", validate(rentalQuerySchema, "query"), async (req, res, next) => 
   }
 });
 
+router.post("/seed-demo", async (req, res, next) => {
+  try {
+    const now = new Date();
+
+    const demo = await Rental.create([
+      {
+        rentalCode: "R-1001",
+        status: "ACTIVE",
+        paymentStatus: "PAID",
+        totalCost: 25,
+        startTime: now,
+        userId: req.user?.id,
+      },
+      {
+        rentalCode: "R-1002",
+        status: "ENDED",
+        paymentStatus: "PAID",
+        totalCost: 40,
+        startTime: new Date(now.getTime() - 60 * 60 * 1000),
+        endTime: now,
+        userId: req.user?.id,
+      },
+    ]);
+
+    res.json({ ok: true, data: demo });
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.post("/:id/complete", async (req, res, next) => {
   try {
     const rental = await rentalService.completeRental({
