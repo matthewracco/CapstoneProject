@@ -10,7 +10,6 @@ import Analytics from "../features/analytics/Analytics";
 
 import { SignInPage, SignUpPage } from "./pages/Auth";
 
-// ✅ Owner guard (route-level protection)
 function RequireOwner({ children }) {
   const { user, isLoaded } = useUser();
 

@@ -19,17 +19,17 @@ const navigation = [
 
 export default function Sidebar() {
   const { user, isLoaded } = useUser();
-  const roleRaw = user?.publicMetadata?.role ?? "USER";
+  const roleRaw = user?.publicMetadata?.role ?? "User";
   const role = roleRaw.toString().toUpperCase(); 
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div
-      className={`h-screen bg-slate-900 text-white transition-all duration-300 flex flex-col ${
+      className={`h-screen bg-black text-white transition-all duration-300 flex flex-col ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      <div className="flex items-center justify-between p-4 border-b border-slate-800">
+      <div className="flex items-center justify-between p-4 border-b border-white">
         {!collapsed && <h2 className="text-lg font-bold tracking-wide">SmartLocker</h2>}
         <button onClick={() => setCollapsed(!collapsed)} className="p-1 rounded hover:bg-slate-800">
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
