@@ -1,7 +1,6 @@
 const lockerService = require("../services/locker.service");
 const AppError = require("../utils/AppError");
 const { ok, created } = require("../utils/respond");
-const settingsService = require("../services/settings.service");
 
 async function getLockers(req, res, next) {
   try {
@@ -15,19 +14,9 @@ async function getLockers(req, res, next) {
       ...(tier ? { tier } : {}),
     };
 
-    // Customer visibility rules:
-    //   PRIVATE mode → only lockers assigned to this customer
-    //   PUBLIC mode  → unassigned lockers (time-limit pool) + this customer's assigned lockers
+    // Customers only ever see lockers assigned to them.
     if (req.user.role === "CUSTOMER") {
-      const settings = await settingsService.getSettings({ tenantId: req.tenantId });
-      if (settings.mode === "PRIVATE") {
-        filters.assignedTo = req.user.userId;
-      } else {
-        filters.OR = [
-          { assignedTo: null },
-          { assignedTo: req.user.userId },
-        ];
-      }
+      filters.assignedTo = req.user.userId;
     }
 
     const lockers = await lockerService.getAllLockers(filters);

@@ -25,7 +25,6 @@ export default function Lockers() {
   const [showCreate, setShowCreate] = useState(false);
   const [rentLocker, setRentLocker] = useState(null);
   const [maxDuration, setMaxDuration] = useState(null);
-  const [mode, setMode] = useState("PUBLIC");
   const [showScanner, setShowScanner] = useState(false);
 
   function fetchLockers() {
@@ -41,9 +40,8 @@ export default function Lockers() {
     api.get("/settings")
       .then((res) => {
         setMaxDuration(res.data.settings?.maxDurationHours ?? null);
-        setMode(res.data.settings?.mode ?? "PUBLIC");
       })
-      .catch(() => {}); // silent — no settings means PUBLIC + uncapped
+      .catch(() => {});
   }, []);
 
   const filtered = filter
@@ -73,7 +71,7 @@ export default function Lockers() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Lockers</h1>
           <p className="text-slate-500 text-sm mt-1">
-            {mode === "PRIVATE" && !canManage
+            {!canManage
               ? `${lockers.length} locker${lockers.length !== 1 ? "s" : ""} assigned to you`
               : `${lockers.length} total lockers`}
           </p>
@@ -98,8 +96,8 @@ export default function Lockers() {
         )}
       </div>
 
-      {/* Filter Tabs — hidden in PRIVATE mode for customers (only assigned lockers shown) */}
-      {(mode !== "PRIVATE" || canManage) && (
+      {/* Filter Tabs — hidden for customers (only their assigned lockers are shown) */}
+      {canManage && (
         <div className="flex gap-2">
           {STATUS_TABS.map((tab) => (
             <button
@@ -121,14 +119,14 @@ export default function Lockers() {
       )}
 
       {/* Grid */}
-      {mode === "PRIVATE" && !canManage && lockers.length === 0 ? (
+      {!canManage && lockers.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
           <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Box size={28} className="text-indigo-400" />
           </div>
           <h3 className="text-lg font-semibold text-slate-800 mb-2">No Locker Assigned</h3>
           <p className="text-sm text-slate-500 max-w-sm mx-auto">
-            This facility operates in private mode. No locker has been assigned to your account yet. Please contact staff for assistance.
+            No locker has been assigned to your account yet. Please contact staff for assistance.
           </p>
         </div>
       ) : (
