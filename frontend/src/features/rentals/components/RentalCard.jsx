@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Key, Clock, CreditCard } from "lucide-react";
 import { endRental } from "../rentals.api";
 import toast from "react-hot-toast";
@@ -12,16 +12,32 @@ export default function RentalCard({ rental, onRefresh }) {
   const [showExtend, setShowExtend] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
+  const lockerLabel = rental.locker?.lockerNumber ?? rental.lockerId;
+  const isActive = rental.status === "ACTIVE";
+  const needsPayment = rental.paymentStatus === "PENDING" && isActive;
+
+  const timerRef = useRef(null);
+  const [minutesLeft, setMinutesLeft] = useState(null);
+
+  useEffect(() => {
+    if (!isActive || !rental.endTime) return;
+
+    function tick() {
+      const diffMs = new Date(rental.endTime).getTime() - Date.now();
+      setMinutesLeft(Math.max(0, Math.floor(diffMs / 60000)));
+    }
+
+    tick();
+    timerRef.current = setInterval(tick, 60000);
+    return () => clearInterval(timerRef.current);
+  }, [isActive, rental.endTime]);
+
   const statusStyles = {
     ACTIVE: "bg-green-100 text-green-600",
     COMPLETED: "bg-slate-200 text-slate-600",
     CANCELLED: "bg-red-100 text-red-600",
     OVERDUE: "bg-red-100 text-red-700",
   };
-
-  const lockerLabel = rental.locker?.lockerNumber ?? rental.lockerId;
-  const isActive = rental.status === "ACTIVE";
-  const needsPayment = rental.paymentStatus === "PENDING" && isActive;
 
   async function handleEndRental() {
     try {
@@ -48,11 +64,39 @@ export default function RentalCard({ rental, onRefresh }) {
             <p className="text-sm text-slate-500">
               Started: {new Date(rental.startTime).toLocaleString()}
             </p>
-            {rental.endTime && (
-              <p className="text-sm text-slate-500">
-                {rental.status === "ACTIVE" ? "Ends" : "Ended"}: {new Date(rental.endTime).toLocaleString()}
+
+            {/* ACTIVE with no endTime: subscription */}
+            {isActive && !rental.endTime && (
+              <p className="text-sm text-indigo-500 font-medium">Subscription</p>
+            )}
+
+            {/* ACTIVE with endTime: live countdown (D-04, TIMER-01, TIMER-02) */}
+            {isActive && rental.endTime && rental.status !== "OVERDUE" && minutesLeft !== null && (
+              <p className={`text-sm ${
+                minutesLeft < 30
+                  ? "text-red-600"
+                  : minutesLeft < 120
+                  ? "text-amber-600"
+                  : "text-slate-500"
+              }`}>
+                {Math.floor(minutesLeft / 60) > 0
+                  ? `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m remaining`
+                  : `${minutesLeft}m remaining`}
               </p>
             )}
+
+            {/* OVERDUE: static label (D-07) */}
+            {rental.status === "OVERDUE" && (
+              <p className="text-sm text-red-600">Overdue</p>
+            )}
+
+            {/* COMPLETED / CANCELLED: static end date (D-05) */}
+            {!isActive && rental.status !== "OVERDUE" && rental.endTime && (
+              <p className="text-sm text-slate-500">
+                Ended: {new Date(rental.endTime).toLocaleString()}
+              </p>
+            )}
+
             {rental.totalCost > 0 && (
               <p className="text-sm text-slate-500">
                 Cost: <span className="font-semibold text-indigo-600">${rental.totalCost.toFixed(2)}</span>
@@ -83,13 +127,15 @@ export default function RentalCard({ rental, onRefresh }) {
               Get Access Code
             </button>
 
-            <button
-              onClick={() => setShowExtend(true)}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition"
-            >
-              <Clock size={14} />
-              Extend
-            </button>
+            {rental.endTime && (
+              <button
+                onClick={() => setShowExtend(true)}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition"
+              >
+                <Clock size={14} />
+                Extend
+              </button>
+            )}
 
             {needsPayment && (
               <button

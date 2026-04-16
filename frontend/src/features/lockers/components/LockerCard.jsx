@@ -1,9 +1,11 @@
 import { Box, MapPin, Layers, Crown } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const statusStyles = {
   AVAILABLE: { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500" },
   OCCUPIED: { bg: "bg-amber-100", text: "text-amber-700", dot: "bg-amber-500" },
   MAINTENANCE: { bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500" },
+  ASSIGNED: { bg: "bg-indigo-100", text: "text-indigo-700", dot: "bg-indigo-500" },
 };
 
 const sizeLabels = { SMALL: "S", MEDIUM: "M", LARGE: "L" };
@@ -19,6 +21,8 @@ export default function LockerCard({ locker, onRent }) {
           ? "border-green-500"
           : locker.status === "OCCUPIED"
           ? "border-amber-500"
+          : locker.status === "ASSIGNED"
+          ? "border-indigo-500"
           : "border-red-400"
       }`}
     >
@@ -74,6 +78,15 @@ export default function LockerCard({ locker, onRent }) {
         <div className="w-full py-2 text-sm font-medium text-amber-600 bg-amber-50 rounded-lg text-center">
           Currently Rented
         </div>
+      )}
+
+      {locker.status === "ASSIGNED" && (
+        <Link
+          to="/rentals"
+          className="block w-full py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg text-center hover:bg-indigo-100 transition"
+        >
+          Your Locker — View Rental
+        </Link>
       )}
 
       {locker.status === "MAINTENANCE" && (

@@ -107,4 +107,70 @@ router.post("/:id/override", requireAuth, requireTenant, requireRole("STAFF", "O
   }
 });
 
+// Assign or unassign a locker to a user
+router.patch("/:id/assign", requireAuth, requireTenant, requireRole("STAFF", "OWNER"), async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+
+    // Find the locker (tenant-scoped)
+    const locker = await prisma.locker.findFirst({
+      where: { id: req.params.id, tenantId: req.tenantId },
+    });
+    if (!locker) throw new AppError("Locker not found", 404, "LOCKER_NOT_FOUND");
+
+    // Unassign: userId is null or undefined
+    if (!userId) {
+      // Complete any active subscription rental on this locker
+      await prisma.rental.updateMany({
+        where: { lockerId: req.params.id, tenantId: req.tenantId, status: "ACTIVE" },
+        data: { status: "COMPLETED", endTime: new Date() },
+      });
+      const updated = await prisma.locker.update({
+        where: { id: req.params.id },
+        data: { assignedTo: null, status: "AVAILABLE" },
+      });
+      return res.status(200).json({ message: "Locker unassigned", locker: updated });
+    }
+
+    // Validate user exists in same tenant
+    const targetUser = await prisma.user.findFirst({
+      where: { id: userId, tenantId: req.tenantId },
+    });
+    if (!targetUser) throw new AppError("User not found", 404, "USER_NOT_FOUND");
+
+    // Cancel any existing active rental on this locker before re-assigning
+    await prisma.rental.updateMany({
+      where: { lockerId: req.params.id, tenantId: req.tenantId, status: "ACTIVE" },
+      data: { status: "COMPLETED", endTime: new Date() },
+    });
+
+    // Assign
+    const updated = await prisma.locker.update({
+      where: { id: req.params.id },
+      data: { assignedTo: userId, status: "ASSIGNED" },
+    });
+
+    // Auto-create a subscription rental (no end time) for the assigned user
+    await rentalService.createSubscriptionRental({
+      tenantId: req.tenantId,
+      userId,
+      lockerId: req.params.id,
+    });
+
+    // Send notification to the assigned user
+    const notificationService = require("../services/notification.service");
+    await notificationService.create({
+      tenantId: req.tenantId,
+      userId: userId,
+      type: "LOCKER_ASSIGNED",
+      title: "Locker Assigned",
+      body: `Locker ${locker.lockerNumber} has been assigned to you.`,
+    });
+
+    res.status(200).json({ message: "Locker assigned", locker: updated });
+  } catch (e) {
+    next(e);
+  }
+});
+
 module.exports = router;

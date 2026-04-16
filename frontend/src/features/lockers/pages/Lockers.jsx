@@ -3,8 +3,10 @@ import { getLockers } from "../lockers.api";
 import LockerGrid from "../components/LockerGrid";
 import CreateLockerModal from "../components/CreateLockerModal";
 import RentLockerModal from "../components/RentLockerModal";
+import QRScannerModal from "../components/QRScannerModal";
 import { useAuth } from "../../auth/useAuth";
-import { Plus } from "lucide-react";
+import { Plus, Box, ScanLine } from "lucide-react";
+import api from "../../../lib/axios";
 
 const STATUS_TABS = [
   { label: "All", value: "" },
@@ -22,6 +24,9 @@ export default function Lockers() {
   const [filter, setFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [rentLocker, setRentLocker] = useState(null);
+  const [maxDuration, setMaxDuration] = useState(null);
+  const [mode, setMode] = useState("PUBLIC");
+  const [showScanner, setShowScanner] = useState(false);
 
   function fetchLockers() {
     setLoading(true);
@@ -33,6 +38,12 @@ export default function Lockers() {
 
   useEffect(() => {
     fetchLockers();
+    api.get("/settings")
+      .then((res) => {
+        setMaxDuration(res.data.settings?.maxDurationHours ?? null);
+        setMode(res.data.settings?.mode ?? "PUBLIC");
+      })
+      .catch(() => {}); // silent — no settings means PUBLIC + uncapped
   }, []);
 
   const filtered = filter
@@ -62,9 +73,20 @@ export default function Lockers() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Lockers</h1>
           <p className="text-slate-500 text-sm mt-1">
-            {lockers.length} total lockers
+            {mode === "PRIVATE" && !canManage
+              ? `${lockers.length} locker${lockers.length !== 1 ? "s" : ""} assigned to you`
+              : `${lockers.length} total lockers`}
           </p>
         </div>
+        {!canManage && (
+          <button
+            onClick={() => setShowScanner(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
+          >
+            <ScanLine size={16} />
+            Scan Locker QR
+          </button>
+        )}
         {canManage && (
           <button
             onClick={() => setShowCreate(true)}
@@ -76,28 +98,42 @@ export default function Lockers() {
         )}
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => setFilter(tab.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              filter === tab.value
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-slate-600 hover:bg-slate-50 shadow-sm"
-            }`}
-          >
-            {tab.label}
-            <span className="ml-2 text-xs opacity-70">
-              {counts[tab.value]}
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* Filter Tabs — hidden in PRIVATE mode for customers (only assigned lockers shown) */}
+      {(mode !== "PRIVATE" || canManage) && (
+        <div className="flex gap-2">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setFilter(tab.value)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                filter === tab.value
+                  ? "bg-indigo-600 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50 shadow-sm"
+              }`}
+            >
+              {tab.label}
+              <span className="ml-2 text-xs opacity-70">
+                {counts[tab.value]}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Grid */}
-      <LockerGrid lockers={filtered} onRent={(locker) => setRentLocker(locker)} />
+      {mode === "PRIVATE" && !canManage && lockers.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Box size={28} className="text-indigo-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">No Locker Assigned</h3>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto">
+            This facility operates in private mode. No locker has been assigned to your account yet. Please contact staff for assistance.
+          </p>
+        </div>
+      ) : (
+        <LockerGrid lockers={filtered} onRent={(locker) => setRentLocker(locker)} />
+      )}
 
       {/* Modals */}
       {canManage && (
@@ -112,6 +148,16 @@ export default function Lockers() {
         locker={rentLocker}
         onClose={() => setRentLocker(null)}
         onRented={fetchLockers}
+        maxDuration={maxDuration}
+      />
+      <QRScannerModal
+        open={showScanner}
+        lockers={lockers}
+        onScanSuccess={(locker) => {
+          setShowScanner(false);
+          setRentLocker(locker);
+        }}
+        onClose={() => setShowScanner(false)}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import Notifications from "../features/notifications/Notifications";
 import Analytics from "../features/analytics/Analytics";
 import StaffDashboard from "../features/staff/pages/StaffDashboard";
 import UserManagement from "../features/users/pages/UserManagement";
+import FacilitySettings from "../features/settings/pages/FacilitySettings";
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
             <Route element={<ProtectedRoute allowedRoles={["OWNER"]} />}>
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/settings" element={<FacilitySettings />} />
             </Route>
           </Route>
         </Route>

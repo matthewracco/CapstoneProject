@@ -32,6 +32,7 @@ model Locker {
 
   // AVAILABLE | OCCUPIED | MAINTENANCE | ASSIGNED
   status     String @default("AVAILABLE")
+  assignedTo String?
   qrCode     String?
   accessCode String?
   accessCodeExpiry DateTime?
@@ -107,4 +108,14 @@ model Notification {
 
   @@index([tenantId, userId])
   @@index([tenantId, userId, read])
+}
+
+model TenantConfig {
+  id               String  @id @default(cuid())
+  tenantId         String  @unique
+  mode             String  @default("PUBLIC")
+  maxDurationHours Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

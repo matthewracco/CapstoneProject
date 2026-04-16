@@ -4,13 +4,14 @@ const { ok, created } = require("../utils/respond");
 
 async function createRental(req, res, next) {
   try {
-    const { lockerId } = req.body;
+    const { lockerId, durationHours } = req.body;
     if (!lockerId) throw new AppError("lockerId is required", 400, "VALIDATION_ERROR", { field: "lockerId" });
 
     const rental = await rentalService.createRental({
       tenantId: req.tenantId,
       userId: req.user.userId,
       lockerId,
+      durationHours: durationHours ? Number(durationHours) : 4,
     });
 
     return created(res, rental);

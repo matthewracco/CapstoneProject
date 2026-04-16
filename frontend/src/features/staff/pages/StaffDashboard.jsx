@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Shield, Box, ClipboardList, Users, Loader2, AlertTriangle } from "lucide-react";
 import api from "../../../lib/axios";
 import toast from "react-hot-toast";
+import { assignLocker as assignLockerApi, unassignLocker } from "../staff.api.js";
 
 const TABS = [
   { key: "lockers", label: "All Lockers", icon: Box },
@@ -13,6 +14,7 @@ const statusStyles = {
   AVAILABLE: "bg-green-100 text-green-700",
   OCCUPIED: "bg-amber-100 text-amber-700",
   MAINTENANCE: "bg-red-100 text-red-700",
+  ASSIGNED: "bg-indigo-100 text-indigo-700",
 };
 
 const roleStyles = {
@@ -27,6 +29,7 @@ export default function StaffDashboard() {
   const [rentals, setRentals] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [assignModal, setAssignModal] = useState(null); // locker object or null
 
   useEffect(() => {
     loadData();
@@ -36,8 +39,17 @@ export default function StaffDashboard() {
     setLoading(true);
     try {
       if (tab === "lockers") {
-        const res = await api.get("/lockers");
-        setLockers(res.data.lockers || res.data.data || []);
+        const [lockersRes, usersRes] = await Promise.all([
+          api.get("/lockers"),
+          api.get("/users"),
+        ]);
+        const usersData = usersRes.data.users || usersRes.data.data || [];
+        setUsers(usersData);
+        const lockersData = (lockersRes.data.lockers || lockersRes.data.data || []).map(l => ({
+          ...l,
+          assignedToName: l.assignedTo ? usersData.find(u => u.id === l.assignedTo)?.name || null : null,
+        }));
+        setLockers(lockersData);
       } else if (tab === "rentals") {
         const res = await api.get("/rentals");
         setRentals(res.data.rentals || res.data.data || []);
@@ -79,6 +91,27 @@ export default function StaffDashboard() {
       loadData();
     } catch (err) {
       toast.error(err.response?.data?.error?.message || "Failed to update role");
+    }
+  }
+
+  async function handleAssign(lockerId, userId) {
+    try {
+      await assignLockerApi(lockerId, userId);
+      toast.success("Locker assigned successfully");
+      setAssignModal(null);
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || "Failed to assign locker");
+    }
+  }
+
+  async function handleUnassign(lockerId) {
+    try {
+      await unassignLocker(lockerId);
+      toast.success("Locker unassigned");
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || "Failed to unassign locker");
     }
   }
 
@@ -132,6 +165,7 @@ export default function StaffDashboard() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Location</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Type</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Assigned To</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -146,8 +180,32 @@ export default function StaffDashboard() {
                           {l.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-sm text-slate-500">
+                        {l.assignedTo ? (
+                          <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
+                            {l.assignedToName || l.assignedTo}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
+                          {l.status === "ASSIGNED" && l.assignedTo ? (
+                            <button
+                              onClick={() => handleUnassign(l.id)}
+                              className="px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100 transition"
+                            >
+                              Unassign
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setAssignModal(l)}
+                              className="px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100 transition"
+                            >
+                              Assign
+                            </button>
+                          )}
                           {l.status !== "AVAILABLE" && (
                             <button onClick={() => handleOverride(l.id, "AVAILABLE")} className="px-2 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 transition">
                               Set Available
@@ -271,6 +329,47 @@ export default function StaffDashboard() {
             </div>
           )}
         </>
+      )}
+
+      {/* Assign Locker Modal */}
+      {assignModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-1">Assign Locker {assignModal.lockerNumber}</h3>
+            <p className="text-sm text-slate-500 mb-4">Select a customer to assign this locker to.</p>
+
+            <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
+              {users.filter(u => u.role === "CUSTOMER").length === 0 ? (
+                <p className="p-4 text-sm text-slate-400 text-center">No customers found</p>
+              ) : (
+                users.filter(u => u.role === "CUSTOMER").map(u => (
+                  <button
+                    key={u.id}
+                    onClick={() => handleAssign(assignModal.id, u.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-indigo-50 transition text-left"
+                  >
+                    <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-xs font-bold text-indigo-600">
+                      {u.name?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">{u.name}</p>
+                      <p className="text-xs text-slate-400">{u.email}</p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setAssignModal(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

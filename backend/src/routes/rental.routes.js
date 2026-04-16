@@ -14,6 +14,7 @@ router.post("/", requireAuth, requireTenant, validate(createRentalSchema), async
       tenantId: req.tenantId,
       userId: req.user.userId,
       lockerId: req.body.lockerId,
+      durationHours: req.body.durationHours ?? 4,
     });
     res.status(201).json({ message: "Rental created successfully", rental });
   } catch (e) {
@@ -40,6 +41,7 @@ router.post("/:id/complete", requireAuth, requireTenant, async (req, res, next) 
     const rental = await rentalService.completeRental({
       tenantId: req.tenantId,
       userId: req.user.userId,
+      role: req.user.role,
       rentalId: req.params.id,
     });
     res.status(200).json({ message: "Rental completed successfully", rental });

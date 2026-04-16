@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../features/auth/useAuth";
@@ -55,6 +56,12 @@ const navigation = [
     name: "Users",
     path: "/users",
     icon: Users,
+    roles: ["OWNER"],
+  },
+  {
+    name: "Settings",
+    path: "/settings",
+    icon: Settings,
     roles: ["OWNER"],
   },
 ];

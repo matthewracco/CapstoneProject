@@ -7,6 +7,7 @@ const statsRoutes = require("./routes/stats.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const userRoutes = require("./routes/user.routes");
+const settingsRoutes = require("./routes/settings.routes");
 const errorHandler = require("./middleware/errorHandler");
 const AppError = require("./utils/AppError");
 
@@ -16,6 +17,12 @@ function createApp() {
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Temporary request logger — remove after debugging
+  app.use((req, _res, next) => {
+    console.log(`[REQ] ${req.method} ${req.originalUrl}`);
+    next();
+  });
 
   app.get("/health", (req, res) => {
     res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
@@ -28,6 +35,7 @@ function createApp() {
   app.use("/api/v1/payments", paymentRoutes);
   app.use("/api/v1/notifications", notificationRoutes);
   app.use("/api/v1/users", userRoutes);
+  app.use("/api/v1/settings", settingsRoutes);
 
   app.use((req, res, next) => {
     next(new AppError("Route not found", 404, "ROUTE_NOT_FOUND", { path: req.originalUrl }));

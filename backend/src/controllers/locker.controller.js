@@ -1,18 +1,36 @@
 const lockerService = require("../services/locker.service");
 const AppError = require("../utils/AppError");
 const { ok, created } = require("../utils/respond");
+const settingsService = require("../services/settings.service");
 
 async function getLockers(req, res, next) {
   try {
     const { status, location, type, tier } = req.query;
 
-    const lockers = await lockerService.getAllLockers({
+    const filters = {
       tenantId: req.tenantId,
       ...(status ? { status } : {}),
       ...(location ? { location } : {}),
       ...(type ? { type } : {}),
       ...(tier ? { tier } : {}),
-    });
+    };
+
+    // Customer visibility rules:
+    //   PRIVATE mode → only lockers assigned to this customer
+    //   PUBLIC mode  → unassigned lockers (time-limit pool) + this customer's assigned lockers
+    if (req.user.role === "CUSTOMER") {
+      const settings = await settingsService.getSettings({ tenantId: req.tenantId });
+      if (settings.mode === "PRIVATE") {
+        filters.assignedTo = req.user.userId;
+      } else {
+        filters.OR = [
+          { assignedTo: null },
+          { assignedTo: req.user.userId },
+        ];
+      }
+    }
+
+    const lockers = await lockerService.getAllLockers(filters);
 
     return ok(res, lockers, { count: lockers.length });
   } catch (err) {

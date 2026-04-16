@@ -1,7 +1,7 @@
 const prisma = require("../config/prisma");
 const AppError = require("../utils/AppError");
 
-async function createRental({ tenantId, userId, lockerId }) {
+async function createRental({ tenantId, userId, lockerId, durationHours = 4 }) {
   if (!lockerId) {
     throw new AppError("lockerId is required", 400, "VALIDATION_ERROR", { field: "lockerId" });
   }
@@ -18,6 +18,13 @@ async function createRental({ tenantId, userId, lockerId }) {
     throw new AppError("Locker is not available", 400, "LOCKER_NOT_AVAILABLE");
   }
 
+  // Fetch tenant config for duration cap (per D-11)
+  const config = await prisma.tenantConfig.findUnique({ where: { tenantId } });
+  const maxDurationHours = config?.maxDurationHours ?? null;
+  const effectiveDuration = maxDurationHours
+    ? Math.min(durationHours, maxDurationHours)
+    : durationHours;
+
   return prisma.$transaction(async (tx) => {
     const updated = await tx.locker.updateMany({
       where: { id: lockerId, tenantId, status: "AVAILABLE" },
@@ -28,6 +35,10 @@ async function createRental({ tenantId, userId, lockerId }) {
       throw new AppError("Locker is not available", 400, "LOCKER_NOT_AVAILABLE");
     }
 
+    const startTime = new Date();
+    const endTime = new Date(startTime.getTime() + effectiveDuration * 60 * 60 * 1000);
+    const maxEndTime = new Date(startTime.getTime() + 48 * 60 * 60 * 1000);
+
     return tx.rental.create({
       data: {
         tenantId,
@@ -36,6 +47,9 @@ async function createRental({ tenantId, userId, lockerId }) {
         status: "ACTIVE",
         paymentStatus: "PENDING",
         rentalCode: `RENTAL-${Date.now()}`,
+        startTime,
+        endTime,
+        maxEndTime,
       },
     });
   });
@@ -53,7 +67,7 @@ async function getUserRentals({ tenantId, userId, status }) {
   });
 }
 
-async function completeRental({ tenantId, userId, rentalId }) {
+async function completeRental({ tenantId, userId, rentalId, role }) {
   const rental = await prisma.rental.findFirst({
     where: { id: rentalId, tenantId },
   });
@@ -62,7 +76,8 @@ async function completeRental({ tenantId, userId, rentalId }) {
     throw new AppError("Rental not found", 404, "RENTAL_NOT_FOUND");
   }
 
-  if (rental.userId !== userId) {
+  const isStaffOrOwner = ["STAFF", "OWNER"].includes(role);
+  if (!isStaffOrOwner && rental.userId !== userId) {
     throw new AppError("Not authorized", 403, "FORBIDDEN");
   }
 
@@ -163,10 +178,29 @@ async function forceCompleteRental({ tenantId, rentalId }) {
   });
 }
 
+async function createSubscriptionRental({ tenantId, userId, lockerId }) {
+  const startTime = new Date();
+  return prisma.rental.create({
+    data: {
+      tenantId,
+      userId,
+      lockerId,
+      status: "ACTIVE",
+      paymentStatus: "PENDING",
+      rentalCode: `RENT-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      startTime,
+      endTime: null,
+      maxEndTime: null,
+      totalCost: 0,
+    },
+  });
+}
+
 module.exports = {
   createRental,
   getUserRentals,
   completeRental,
   extendRental,
   forceCompleteRental,
+  createSubscriptionRental,
 };

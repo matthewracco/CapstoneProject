@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getStats } from "./dashboard.api";
 import { useAuth } from "../auth/useAuth";
@@ -60,11 +60,33 @@ function UtilizationBar({ label, value, total, color }) {
 }
 
 function RecentRental({ rental }) {
+  const isActive = rental.status === "ACTIVE";
+  const timerRef = useRef(null);
+  const [minutesLeft, setMinutesLeft] = useState(null);
+
+  useEffect(() => {
+    if (!isActive || !rental.endTime) return;
+    function tick() {
+      const diff = new Date(rental.endTime).getTime() - Date.now();
+      setMinutesLeft(Math.max(0, Math.floor(diff / 60000)));
+    }
+    tick();
+    timerRef.current = setInterval(tick, 60000);
+    return () => clearInterval(timerRef.current);
+  }, [isActive, rental.endTime]);
+
   const statusColors = {
     ACTIVE: "bg-green-100 text-green-700",
     COMPLETED: "bg-slate-100 text-slate-600",
     CANCELLED: "bg-red-100 text-red-600",
   };
+
+  const timerColor =
+    minutesLeft !== null && minutesLeft < 30
+      ? "text-red-600"
+      : minutesLeft !== null && minutesLeft < 120
+      ? "text-amber-600"
+      : "text-slate-500";
 
   return (
     <div className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
@@ -76,14 +98,24 @@ function RecentRental({ rental }) {
           <p className="text-sm font-semibold text-slate-700">
             Locker {rental.locker?.lockerNumber || rental.lockerId}
           </p>
-          <p className="text-xs text-slate-400">
-            {new Date(rental.startTime).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
+          {isActive && rental.endTime && minutesLeft !== null ? (
+            <p className={`text-xs font-medium ${timerColor}`}>
+              {Math.floor(minutesLeft / 60) > 0
+                ? `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m remaining`
+                : `${minutesLeft}m remaining`}
+            </p>
+          ) : isActive && !rental.endTime ? (
+            <p className="text-xs text-indigo-500 font-medium">Subscription</p>
+          ) : (
+            <p className="text-xs text-slate-400">
+              {new Date(rental.startTime).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-3">

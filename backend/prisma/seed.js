@@ -62,11 +62,22 @@ async function main() {
     },
   });
 
-  console.log("Seeded 4 users (password: password123 for all)");
+  const schoolCustomer = await prisma.user.create({
+    data: {
+      tenantId: TENANT,
+      email: "customer@school.com",
+      passwordHash,
+      name: "School Student",
+      role: "CUSTOMER",
+    },
+  });
+
+  console.log("Seeded 5 users (password: password123 for all)");
   console.log(`  Owner:    owner@smartlocker.com`);
   console.log(`  Staff:    staff@smartlocker.com`);
   console.log(`  Customer: customer@smartlocker.com`);
   console.log(`  Customer: john@smartlocker.com`);
+  console.log(`  Customer: customer@school.com  (subscription — no timer)`);
 
   // --- Seed Lockers with real QR codes ---
   const lockers = [];
@@ -95,6 +106,13 @@ async function main() {
   }
 
   console.log(`Seeded ${lockers.length} lockers with QR codes`);
+
+  // --- Assign one locker to Demo Customer for PRIVATE mode testing ---
+  await prisma.locker.update({
+    where: { id: lockers[0].id },
+    data: { assignedTo: customer.id, status: "ASSIGNED" },
+  });
+  console.log(`Assigned locker ${lockers[0].lockerNumber} to Demo Customer (${customer.email})`);
 
   // --- Seed Rentals ---
   const occupiedLockers = lockers.filter((l) => l.status === "OCCUPIED");
@@ -155,6 +173,27 @@ async function main() {
       paymentStatus: "FAILED",
       startTime: new Date(Date.now() - 86400000 * 3),
       endTime: new Date(Date.now() - 86400000 * 3 + 60000),
+    },
+  });
+
+  // Subscription rental for school customer — dedicated locker, no expiry
+  const schoolLocker = availableLockers[availableLockers.length - 1];
+  await prisma.locker.update({
+    where: { id: schoolLocker.id },
+    data: { status: "OCCUPIED" },
+  });
+  await prisma.rental.create({
+    data: {
+      tenantId: TENANT,
+      userId: schoolCustomer.id,
+      lockerId: schoolLocker.id,
+      status: "ACTIVE",
+      rentalCode: `RENT-SCHOOL-${Date.now()}`,
+      totalCost: 0,
+      paymentStatus: "COMPLETED",
+      startTime: new Date(Date.now() - 86400000 * 7), // started a week ago
+      endTime: null,
+      maxEndTime: null,
     },
   });
 
