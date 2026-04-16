@@ -80,7 +80,7 @@ export default function Sidebar() {
       <div className="flex items-center justify-between p-4 border-b border-slate-800">
         {!collapsed && (
           <div>
-            <h2 className="text-lg font-bold tracking-wide">SmartLocker</h2>
+            <h2 className="text-lg font-bold tracking-wide">GMJK Lockers</h2>
             {["STAFF", "OWNER"].includes(user?.role) && (
               <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-semibold">
                 {user?.role === "OWNER" ? "Admin Panel" : "Staff Panel"}

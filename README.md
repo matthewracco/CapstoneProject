@@ -1,6 +1,6 @@
-# SmartLocker - Locker Rental Management System
+# GMJK Lockers - Locker Rental Management System
 
-A full-stack web application for managing smart locker rentals. Customers can browse, rent, and manage lockers with real-time access codes and payments. Staff and owners get management dashboards with analytics, user management, and facility oversight.
+A full-stack web application for managing locker rentals. Customers can browse, rent, and manage lockers with real-time access codes and payments. Staff and owners get management dashboards with analytics, user management, and facility oversight.
 
 **George Brown College - Capstone Project (Winter 2026)**
 

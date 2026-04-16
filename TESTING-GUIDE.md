@@ -1,4 +1,4 @@
-# SmartLocker - Testing Guide
+# GMJK Lockers - Testing Guide
 
 ## Quick Setup (2 minutes)
 
@@ -73,7 +73,7 @@ npm run dev
 
 ### What you should see:
 - Sidebar: Dashboard, Lockers, Rentals, Notifications, **Staff** (5 items)
-- Sidebar shows **"STAFF PANEL"** badge under SmartLocker logo
+- Sidebar shows **"STAFF PANEL"** badge under GMJK Lockers logo
 - Dashboard: Full management view with 4 stat cards, utilization charts
 - "Add Locker" button visible on Lockers page
 

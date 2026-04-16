@@ -239,7 +239,7 @@ async function main() {
       tenantId: TENANT,
       userId: customer.id,
       type: "RENTAL_CONFIRMATION",
-      title: "Welcome to SmartLocker!",
+      title: "Welcome to GMJK Lockers!",
       body: "Your account is set up and ready to go. Browse available lockers to get started.",
       read: true,
     },

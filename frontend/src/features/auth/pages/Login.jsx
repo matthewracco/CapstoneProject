@@ -41,7 +41,7 @@ export default function Login() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600">
             <Lock className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">SmartLocker</h1>
+          <h1 className="text-2xl font-bold text-white">GMJK Lockers</h1>
           <p className="mt-1 text-sm text-slate-400">
             Sign in to manage your lockers
           </p>

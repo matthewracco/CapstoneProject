@@ -8,7 +8,7 @@ export default function Topbar() {
   return (
     <div className="h-16 bg-white shadow-sm flex items-center justify-between px-8 border-b border-slate-100">
       <h1 className="font-semibold text-lg text-slate-700">
-        SmartLocker Dashboard
+        GMJK Lockers Dashboard
       </h1>
 
       <div className="flex items-center gap-4">

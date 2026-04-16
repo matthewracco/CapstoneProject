@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6">
       <div className="bg-white w-full max-w-xl rounded-2xl shadow p-8">
-        <h1 className="text-3xl font-bold">SmartLocker</h1>
+        <h1 className="text-3xl font-bold">GMJK Lockers</h1>
         <p className="text-slate-600 mt-2">
           Lockers, rentals, and analytics in one place.
         </p>

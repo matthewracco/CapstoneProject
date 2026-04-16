@@ -1,4 +1,5 @@
 {
+  "name": "gmjk-lockers-backend",
   "scripts": {
     "start": "prisma migrate deploy && node server.js",
     "dev": "node server.js",
