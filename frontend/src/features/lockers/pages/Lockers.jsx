@@ -15,9 +15,15 @@ const STATUS_TABS = [
   { label: "Maintenance", value: "MAINTENANCE" },
 ];
 
+const PUBLIC_DEMO_EMAIL = "customer@smartlocker.com";
+
 export default function Lockers() {
   const { user } = useAuth();
   const canManage = ["STAFF", "OWNER"].includes(user?.role);
+  // The public demo account browses the full pool; other customers only see
+  // lockers assigned to them.
+  const isPublicCustomer = user?.role === "CUSTOMER" && user?.email === PUBLIC_DEMO_EMAIL;
+  const showFullPool = canManage || isPublicCustomer;
   const [lockers, setLockers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,9 +77,11 @@ export default function Lockers() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Lockers</h1>
           <p className="text-slate-500 text-sm mt-1">
-            {!canManage
-              ? `${lockers.length} locker${lockers.length !== 1 ? "s" : ""} assigned to you`
-              : `${lockers.length} total lockers`}
+            {canManage
+              ? `${lockers.length} total lockers`
+              : isPublicCustomer
+              ? `${lockers.length} locker${lockers.length !== 1 ? "s" : ""} available`
+              : `${lockers.length} locker${lockers.length !== 1 ? "s" : ""} assigned to you`}
           </p>
         </div>
         {!canManage && (
@@ -96,8 +104,8 @@ export default function Lockers() {
         )}
       </div>
 
-      {/* Filter Tabs — hidden for customers (only their assigned lockers are shown) */}
-      {canManage && (
+      {/* Filter Tabs — hidden for assigned-only customers */}
+      {showFullPool && (
         <div className="flex gap-2">
           {STATUS_TABS.map((tab) => (
             <button
@@ -119,7 +127,7 @@ export default function Lockers() {
       )}
 
       {/* Grid */}
-      {!canManage && lockers.length === 0 ? (
+      {!canManage && !isPublicCustomer && lockers.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
           <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Box size={28} className="text-indigo-400" />

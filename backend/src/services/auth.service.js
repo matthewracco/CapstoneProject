@@ -20,6 +20,7 @@ function generateTokens(user) {
     userId: user.id,
     tenantId: user.tenantId,
     role: user.role,
+    email: user.email,
   };
 
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });

@@ -14,8 +14,10 @@ async function getLockers(req, res, next) {
       ...(tier ? { tier } : {}),
     };
 
-    // Customers only ever see lockers assigned to them.
-    if (req.user.role === "CUSTOMER") {
+    // Customers only see their assigned lockers, except the public demo
+    // account which can browse the full pool for demos.
+    const PUBLIC_DEMO_EMAIL = "customer@smartlocker.com";
+    if (req.user.role === "CUSTOMER" && req.user.email !== PUBLIC_DEMO_EMAIL) {
       filters.assignedTo = req.user.userId;
     }
 
